@@ -171,3 +171,15 @@ def test_risk_facts_included(aapl_sections) -> None:
     assert {"beta_2y", "down_capture", "max_drawdown_2y"} <= rp["AAPL"].keys()
     assert "beta_2y" not in rp["SPY"] or rp["SPY"]["beta_2y"] == "1.00"
     assert "risk_profile" not in facts["unavailable_sections"]
+
+
+def test_earnings_history_facts(aapl_sections) -> None:
+    from brief.finnhub_client import parse_earnings_history
+    from tests.conftest import load_json
+
+    h = ok(parse_earnings_history(load_json("finnhub_earnings_history_aapl.json")))
+    facts = ai.build_facts(AAPL, earnings_history=h, **aapl_sections)
+    et = facts["earnings_track_record"]
+    assert et["summary"].startswith("Beat estimates in 3 of the last 4")
+    assert et["quarters_newest_first"][0]["result"] == "in line"
+    assert "GAAP" in et["basis_note"]

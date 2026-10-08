@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from brief import formatting as fmt
 from brief.config import get_settings
 from brief.financials import Financials
-from brief.finnhub_client import EarningsEvent, WallStreetView
+from brief.finnhub_client import EPS_BASIS_NOTE, EarningsEvent, EarningsHistory, WallStreetView
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo
 from brief.models import DataUnavailableError, SectionResult, safe_section
 from brief.news import MessagesClient, NewsBrief, anthropic_client, describe_api_error
@@ -81,6 +81,7 @@ def build_facts(
     news: SectionResult[NewsBrief] | None = None,
     etf: SectionResult[EtfProfile] | None = None,
     risk: SectionResult[RiskProfile] | None = None,
+    earnings_history: SectionResult[EarningsHistory] | None = None,
 ) -> dict[str, Any]:
     """Collect every available section into one dict of pre-formatted values.
 
@@ -218,6 +219,24 @@ def build_facts(
             "eps_estimate": fmt.num(e.eps_estimate),
             "revenue_estimate": fmt.money(e.revenue_estimate),
         }
+
+    if h := _data(earnings_history):
+        facts["earnings_track_record"] = {
+            "summary": h.summary(),
+            "basis_note": EPS_BASIS_NOTE,
+            "quarters_newest_first": [
+                {
+                    "quarter_end": f"{q.period_end:%Y-%m-%d}",
+                    "eps_estimate": fmt.num(q.estimate),
+                    "eps_actual": fmt.num(q.actual),
+                    "surprise": fmt.pct(q.surprise_pct, 1, signed=True),
+                    "result": q.outcome or fmt.MISSING,
+                }
+                for q in h.quarters
+            ],
+        }
+    elif ticker.asset_type is AssetType.STOCK:
+        unavailable.append("earnings_track_record")
 
     if n := _data(news):
         facts["recent_news"] = {

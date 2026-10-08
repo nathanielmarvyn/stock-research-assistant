@@ -120,3 +120,15 @@ def test_drawdown_chart_fills_ticker_only() -> None:
     fig = charts.drawdown_chart(_risk_profile().underwater)
     assert [t.name for t in fig.data] == ["XYZ", "SPY"]
     assert fig.data[0].fill == "tozeroy" and fig.data[1].fill is None
+
+
+def test_earnings_table_and_chart() -> None:
+    from brief.finnhub_client import parse_earnings_history
+    from tests.conftest import load_json
+
+    h = parse_earnings_history(load_json("finnhub_earnings_history_aapl.json"))
+    table = ui.earnings_table(h)
+    assert list(table["Result"])[0] == "● In line" and table["Quarter ended"].iloc[0] == "Jun 30, 2026"
+    fig = charts.earnings_chart(h)
+    assert [t.name for t in fig.data] == ["Estimate", "Actual"]
+    assert list(fig.data[0].x)[-1] == "Jun 2026"  # oldest to newest, left to right
