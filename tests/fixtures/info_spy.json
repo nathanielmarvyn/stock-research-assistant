@@ -1,0 +1,23 @@
+{
+  "quoteType": "ETF",
+  "symbol": "SPY",
+  "shortName": "State Street SPDR S&P 500 ETF T",
+  "longName": "State Street SPDR S&P 500 ETF Trust",
+  "regularMarketPrice": 777.22,
+  "regularMarketChange": -1.87006,
+  "regularMarketChangePercent": -0.240031,
+  "regularMarketPreviousClose": 779.09,
+  "fiftyTwoWeekLow": 629.28,
+  "fiftyTwoWeekHigh": 781.62,
+  "dividendYield": 0.99,
+  "trailingAnnualDividendYield": 0.0072674532,
+  "yield": 0.0099,
+  "currency": "USD",
+  "exchange": "PCX",
+  "regularMarketTime": 1791403200,
+  "totalAssets": 809216114688,
+  "netExpenseRatio": 0.0945,
+  "fundFamily": "State Street Investment Management",
+  "category": "Large Blend",
+  "trailingPE": 24.675882
+}
