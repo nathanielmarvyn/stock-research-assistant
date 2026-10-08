@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from brief.financials import get_financials  # noqa: E402
+from brief.formatting import money as big  # noqa: E402
 from brief.finnhub_client import get_next_earnings, get_wall_street_view  # noqa: E402
 from brief.market_data import (  # noqa: E402
     AssetType,
@@ -27,16 +28,6 @@ from brief.trends import get_price_trends  # noqa: E402
 def fmt(value: float | None, spec: str) -> str:
     """Format a number, or a dash when it's missing."""
     return "—" if value is None else format(value, spec)
-
-
-def big(value: float | None) -> str:
-    """Format a large dollar amount as $1.23T / $4.5B / $6.7M."""
-    if value is None:
-        return "—"
-    for size, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M")):
-        if abs(value) >= size:
-            return f"${value / size:,.2f}{suffix}"
-    return f"${value:,.0f}"
 
 
 def header(title: str, result: SectionResult) -> bool:
