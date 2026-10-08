@@ -1,0 +1,650 @@
+[
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Officer and Director",
+    "Shares":26325,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2026-10-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":46389,
+    "Value":15466923.0,
+    "Text":"Sale at price 333.35 - 333.91 per share.",
+    "Start Date":"2026-10-02"
+  },
+  {
+    "Insider":"TERNUS JOHN",
+    "Position":"Chief Executive Officer",
+    "Shares":25412,
+    "Value":8460740.0,
+    "Text":"Sale at price 331.38 - 334.05 per share.",
+    "Start Date":"2026-10-02"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Officer and Director",
+    "Shares":191753,
+    "Value":63845841.0,
+    "Text":"Sale at price 331.44 - 333.94 per share.",
+    "Start Date":"2026-10-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":99878,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-10-01"
+  },
+  {
+    "Insider":"KHAN SABIH",
+    "Position":"Chief Operating Officer",
+    "Shares":99878,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-10-01"
+  },
+  {
+    "Insider":"TERNUS JOHN",
+    "Position":"Chief Executive Officer",
+    "Shares":99878,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-10-01"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Officer and Director",
+    "Shares":374541,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-10-01"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":2399,
+    "Value":806496.0,
+    "Text":"Sale at price 336.18 per share.",
+    "Start Date":"2026-09-29"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":2399,
+    "Value":815804.0,
+    "Text":"Sale at price 340.06 per share.",
+    "Start Date":"2026-09-22"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"Officer",
+    "Shares":1438,
+    "Value":474813.0,
+    "Text":"Sale at price 330.19 per share.",
+    "Start Date":"2026-09-15"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"Officer",
+    "Shares":30104,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-09-15"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":1438,
+    "Value":456177.0,
+    "Text":"Sale at price 317.23 per share.",
+    "Start Date":"2026-09-08"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":1439,
+    "Value":456177.0,
+    "Text":"Sale at price 317.01 per share.",
+    "Start Date":"2026-09-01"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":1439,
+    "Value":447457.0,
+    "Text":"Sale at price 310.95 per share.",
+    "Start Date":"2026-08-25"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":1439,
+    "Value":442478.0,
+    "Text":"Sale at price 307.49 per share.",
+    "Start Date":"2026-08-18"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":1439,
+    "Value":442852.0,
+    "Text":"Sale at price 307.75 per share.",
+    "Start Date":"2026-08-11"
+  },
+  {
+    "Insider":"BORDERS BEN",
+    "Position":"Officer",
+    "Shares":116,
+    "Value":34236.0,
+    "Text":"Sale at price 295.14 per share.",
+    "Start Date":"2026-06-16"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":30104,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-06-15"
+  },
+  {
+    "Insider":"BORDERS BEN",
+    "Position":"Officer",
+    "Shares":240,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-06-15"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":65000,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2026-05-27"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":50000,
+    "Value":15551000.0,
+    "Text":"Sale at price 311.02 per share.",
+    "Start Date":"2026-05-27"
+  },
+  {
+    "Insider":"BORDERS BEN",
+    "Position":"Officer",
+    "Shares":1274,
+    "Value":369460.0,
+    "Text":"Sale at price 290.00 per share.",
+    "Start Date":"2026-05-08"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":5000,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2026-05-06"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":250000,
+    "Value":71189722.0,
+    "Text":"Sale at price 284.57 - 285.04 per share.",
+    "Start Date":"2026-05-06"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":1534,
+    "Value":421850.0,
+    "Text":"Sale at price 275.00 per share.",
+    "Start Date":"2026-04-23"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":10928,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-04-15"
+  },
+  {
+    "Insider":"BORDERS BEN",
+    "Position":"Officer",
+    "Shares":1717,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-04-15"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":30002,
+    "Value":7660875.0,
+    "Text":"Sale at price 255.12 - 255.82 per share.",
+    "Start Date":"2026-04-02"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":64949,
+    "Value":16512198.0,
+    "Text":"Sale at price 251.25 - 256.00 per share.",
+    "Start Date":"2026-04-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":64317,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-04-01"
+  },
+  {
+    "Insider":"KHAN SABIH",
+    "Position":"Chief Operating Officer",
+    "Shares":64317,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-04-01"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":131576,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-04-01"
+  },
+  {
+    "Insider":"NEWSTEAD JENNIFER",
+    "Position":"General Counsel",
+    "Shares":60208,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-03-13"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":1113,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2026-02-26"
+  },
+  {
+    "Insider":"WAGNER SUSAN L",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"JUNG ANDREA",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"SUGAR RONALD D",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":1113,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"AUSTIN WANDA M",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"GORSKY ALEX",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"LOZANO MONICA C.",
+    "Position":"Director",
+    "Shares":1255,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2026-01-30"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":3750,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2025-11-12"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":3752,
+    "Value":1017655.0,
+    "Text":"Sale at price 271.23 per share.",
+    "Start Date":"2025-11-07"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":4199,
+    "Value":1038787.0,
+    "Text":"Sale at price 245.89 - 248.73 per share.",
+    "Start Date":"2025-10-16"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":16457,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-15"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":7371,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-15"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":47125,
+    "Value":12101154.0,
+    "Text":"Sale at price 254.83 - 257.54 per share.",
+    "Start Date":"2025-10-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":43013,
+    "Value":11071078.0,
+    "Text":"Sale at price 257.36 - 258.08 per share.",
+    "Start Date":"2025-10-02"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":129963,
+    "Value":33375723.0,
+    "Text":"Sale at price 254.83 - 257.57 per share.",
+    "Start Date":"2025-10-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":92403,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-01"
+  },
+  {
+    "Insider":"KHAN SABIH",
+    "Position":"Chief Operating Officer",
+    "Shares":92403,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-01"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":92403,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-01"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":277206,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-10-01"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":90000,
+    "Value":20886300.0,
+    "Text":"Sale at price 232.07 per share.",
+    "Start Date":"2025-08-28"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":435,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2025-08-25"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":34821,
+    "Value":7772047.0,
+    "Text":"Sale at price 223.20 per share.",
+    "Start Date":"2025-08-08"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":4486,
+    "Value":933955.0,
+    "Text":"Sale at price 208.19 per share.",
+    "Start Date":"2025-05-12"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":4570,
+    "Value":941420.0,
+    "Text":"Sale at price 206.00 per share.",
+    "Start Date":"2025-04-23"
+  },
+  {
+    "Insider":"PAREKH KEVAN",
+    "Position":"Chief Financial Officer",
+    "Shares":16458,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-15"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":7373,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-15"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":38822,
+    "Value":8683252.0,
+    "Text":"Sale at price 221.68 - 224.62 per share.",
+    "Start Date":"2025-04-02"
+  },
+  {
+    "Insider":"WILLIAMS JEFFREY E",
+    "Position":"Chief Operating Officer",
+    "Shares":35493,
+    "Value":7950691.0,
+    "Text":"Sale at price 223.48 - 225.03 per share.",
+    "Start Date":"2025-04-02"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":108136,
+    "Value":24184658.0,
+    "Text":"Sale at price 221.77 - 224.76 per share.",
+    "Start Date":"2025-04-02"
+  },
+  {
+    "Insider":"O'BRIEN DEIRDRE",
+    "Position":"Officer",
+    "Shares":74535,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-01"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":74535,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-01"
+  },
+  {
+    "Insider":"WILLIAMS JEFFREY E",
+    "Position":"Chief Operating Officer",
+    "Shares":74535,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-01"
+  },
+  {
+    "Insider":"COOK TIMOTHY D",
+    "Position":"Chief Executive Officer",
+    "Shares":218568,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-04-01"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":343147.0,
+    "Text":"Sale at price 226.35 per share.",
+    "Start Date":"2025-02-03"
+  },
+  {
+    "Insider":"WAGNER SUSAN L",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"JUNG ANDREA",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"SUGAR RONALD D",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"AUSTIN WANDA M",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"GORSKY ALEX",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"LOZANO MONICA C.",
+    "Position":"Director",
+    "Shares":1516,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2025-01-31"
+  },
+  {
+    "Insider":"WILLIAMS JEFFREY E",
+    "Position":"Chief Operating Officer",
+    "Shares":100000,
+    "Value":24997395.0,
+    "Text":"Sale at price 248.61 - 251.10 per share.",
+    "Start Date":"2024-12-16"
+  },
+  {
+    "Insider":"LEVINSON ARTHUR D",
+    "Position":"Director",
+    "Shares":200000,
+    "Value":45464500.0,
+    "Text":"Sale at price 224.68 - 229.28 per share.",
+    "Start Date":"2024-11-19"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":4130,
+    "Value":945233.0,
+    "Text":"Sale at price 228.87 per share.",
+    "Start Date":"2024-11-18"
+  },
+  {
+    "Insider":"ADAMS KATHERINE L",
+    "Position":"General Counsel",
+    "Shares":8000,
+    "Value":0.0,
+    "Text":"Stock Gift at price 0.00 per share.",
+    "Start Date":"2024-11-05"
+  },
+  {
+    "Insider":"KONDO CHRISTOPHER",
+    "Position":"Officer",
+    "Shares":8115,
+    "Value":null,
+    "Text":"",
+    "Start Date":"2024-10-15"
+  }
+]

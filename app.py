@@ -122,6 +122,11 @@ def brief(raw: str) -> None:
             earnings_history = loaders.load_earnings_history(symbol)
         ui.render_earnings_history(earnings_history)
 
+        st.divider()
+        with st.spinner("Loading ownership and insider activity…"):
+            ownership = loaders.load_ownership(symbol)
+        ui.render_ownership(ownership)
+
     st.divider()
     with st.spinner("Loading news and scoring sentiment…"):
         news = loaders.load_news(symbol)

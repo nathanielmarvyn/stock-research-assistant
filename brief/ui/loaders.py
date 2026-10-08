@@ -28,6 +28,7 @@ from brief.finnhub_client import (
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo, get_etf_profile, get_snapshot, validate_ticker
 from brief.models import DataUnavailableError, SectionResult
 from brief.news import NewsBrief, get_news
+from brief.ownership import OwnershipActivity, get_ownership_activity
 from brief.risk import RiskProfile, fetch_risk_free_rate, get_risk_profile
 from brief.trends import PriceTrends, fetch_price_history, get_price_trends
 
@@ -150,6 +151,12 @@ def load_earnings_history(symbol: str) -> SectionResult[EarningsHistory]:
 
 
 @cache_successes
+def load_ownership(symbol: str) -> SectionResult[OwnershipActivity]:
+    """Insider trades (6 months), ownership split, and top institutions."""
+    return get_ownership_activity(symbol)
+
+
+@cache_successes
 def load_wall_street(symbol: str) -> SectionResult[WallStreetView]:
     """Analyst consensus and price target."""
     return get_wall_street_view(symbol, load_ticker(symbol)[1])
@@ -177,5 +184,6 @@ def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
         wall_street=None if is_etf else load_wall_street(symbol),
         earnings=None if is_etf else load_earnings(symbol),
         earnings_history=None if is_etf else load_earnings_history(symbol),
+        ownership=None if is_etf else load_ownership(symbol),
         news=load_news(symbol),
     )

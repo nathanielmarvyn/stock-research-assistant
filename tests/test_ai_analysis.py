@@ -183,3 +183,14 @@ def test_earnings_history_facts(aapl_sections) -> None:
     assert et["summary"].startswith("Beat estimates in 3 of the last 4")
     assert et["quarters_newest_first"][0]["result"] == "in line"
     assert "GAAP" in et["basis_note"]
+
+
+def test_ownership_facts(aapl_sections) -> None:
+    from tests.test_ui import _aapl_ownership
+    from brief.ownership import OwnershipActivity
+
+    insiders, breakdown = _aapl_ownership()
+    facts = ai.build_facts(AAPL, ownership=ok(OwnershipActivity(insiders, breakdown)), **aapl_sections)
+    section = facts["ownership_and_insiders"]
+    assert section["held_by_institutions"] == "66.3%"
+    assert section["insider_activity_6m"]["flags"] and "grants" in section["insider_activity_6m"]["note"]

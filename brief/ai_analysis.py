@@ -27,6 +27,7 @@ from brief.finnhub_client import EPS_BASIS_NOTE, EarningsEvent, EarningsHistory,
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo
 from brief.models import DataUnavailableError, SectionResult, safe_section
 from brief.news import MessagesClient, NewsBrief, anthropic_client, describe_api_error
+from brief.ownership import OwnershipActivity
 from brief.risk import Drawdown, RiskMetrics, RiskProfile
 from brief.trends import PriceTrends
 
@@ -82,6 +83,7 @@ def build_facts(
     etf: SectionResult[EtfProfile] | None = None,
     risk: SectionResult[RiskProfile] | None = None,
     earnings_history: SectionResult[EarningsHistory] | None = None,
+    ownership: SectionResult[OwnershipActivity] | None = None,
 ) -> dict[str, Any]:
     """Collect every available section into one dict of pre-formatted values.
 
@@ -237,6 +239,28 @@ def build_facts(
         }
     elif ticker.asset_type is AssetType.STOCK:
         unavailable.append("earnings_track_record")
+
+    if own := _data(ownership):
+        section: dict[str, Any] = {}
+        if (o := own.ownership) is not None:
+            section["held_by_insiders"] = fmt.pct(o.insider_pct, 2)
+            section["held_by_institutions"] = fmt.pct(o.institution_pct, 1)
+            section["top_institutional_holders"] = [
+                f"{h.name}: {fmt.pct(h.pct_held, 2)} of shares, {fmt.pct(h.pct_change, 1, signed=True)} vs. prior quarter"
+                for h in o.top_holders[:5]
+            ]
+        if (a := own.insiders) is not None:
+            section["insider_activity_6m"] = {
+                "summary": a.summary(),
+                "open_market_bought": fmt.money(a.value_bought, 1),
+                "open_market_sold": fmt.money(a.value_sold, 1),
+                "flags": [f"{f.title}. {f.detail}" for f in a.flags],
+                "note": "Only open-market purchases and sales are counted; grants, option exercises, "
+                "tax withholding, and gifts are excluded.",
+            }
+        facts["ownership_and_insiders"] = section
+    elif ticker.asset_type is AssetType.STOCK:
+        unavailable.append("ownership_and_insiders")
 
     if n := _data(news):
         facts["recent_news"] = {

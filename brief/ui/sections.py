@@ -19,7 +19,9 @@ from brief.financials import Financials
 from brief.finnhub_client import EPS_BASIS_NOTE, EarningsEvent, EarningsHistory, WallStreetView
 from brief.market_data import EtfProfile, Snapshot, TickerInfo
 from brief.models import SectionResult
+from brief import ownership as own
 from brief.news import NewsBrief
+from brief.ownership import InsiderActivity, OwnershipActivity, OwnershipBreakdown
 from brief.risk import Drawdown, RiskProfile, risk_summary
 from brief.trends import PriceTrends
 from brief.ui import charts
@@ -397,6 +399,109 @@ def render_earnings_history(history: SectionResult[EarningsHistory]) -> None:
     st.table(earnings_table(h).set_index("Quarter ended"))
     st.plotly_chart(charts.earnings_chart(h), width="stretch", config={"displayModeBar": False})
     st.caption(f"Beat or miss means a surprise of at least ±1%; smaller differences count as in line. {EPS_BASIS_NOTE}")
+
+
+# ---------------------------------------------------------------- 4c. ownership & insiders
+
+TRADE_LABELS = {"buy": "▲ Buy", "sell": "▼ Sell"}  # icon + word, never color alone
+MAX_INSIDER_ROWS = 12
+
+
+def insider_table(a: InsiderActivity) -> pd.DataFrame:
+    """Open-market trades, newest first, one row per person per day."""
+    return pd.DataFrame(
+        {
+            "Date": [f"{t.trade_date:%b} {t.trade_date.day}, {t.trade_date.year}" for t in a.trades],
+            "Insider": [t.name for t in a.trades],
+            "Role": [t.role or "—" for t in a.trades],
+            "Trade": [TRADE_LABELS[t.side] for t in a.trades],
+            "Shares": [f"{t.shares:,}" for t in a.trades],
+            "Value": [fmt.money_compact(t.value) for t in a.trades],
+            "% of holdings": [fmt.pct(t.stake_change, 1) for t in a.trades],
+        }
+    )
+
+
+def holders_table(o: OwnershipBreakdown) -> pd.DataFrame:
+    """Top institutional holders with their latest quarter-over-quarter change."""
+    return pd.DataFrame(
+        {
+            "Holder": [h.name for h in o.top_holders],
+            "% of shares": [fmt.pct(h.pct_held, 2) for h in o.top_holders],
+            "Shares": [fmt.volume(h.shares) for h in o.top_holders],
+            "Value": [fmt.money(h.value, 1) for h in o.top_holders],
+            "Change vs. prior quarter": [fmt.pct(h.pct_change, 1, signed=True) for h in o.top_holders],
+        }
+    )
+
+
+def routine_text(counts: dict[str, int]) -> str:
+    """'Not counted as trades: 18 option exercises, 13 grants/awards, 7 tax withholding, 3 gifts.'"""
+    if not counts:
+        return ""
+    items = sorted(counts.items(), key=lambda kv: -kv[1])
+    return "Not counted as buying or selling: " + ", ".join(f"{n} {label}" for label, n in items) + "."
+
+
+def render_ownership(result: SectionResult[OwnershipActivity]) -> None:
+    """Section 4c: who owns the stock and what insiders have done with it."""
+    if not section("Ownership & insider activity", result):
+        return
+    a, o = result.data.insiders, result.data.ownership
+
+    cols = st.columns(3)
+    cols[0].metric("Held by insiders", fmt.pct(o.insider_pct if o else None, 2), border=True)
+    cols[1].metric(
+        "Held by institutions",
+        fmt.pct(o.institution_pct if o else None, 1),
+        f"{o.institution_count:,} institutions" if o and o.institution_count else None,
+        delta_color="off",
+        delta_arrow="off",
+        border=True,
+    )
+    if a is not None:
+        net = a.net_value
+        cols[2].metric(
+            "Net insider trades (6M)",
+            fmt.money_compact(net) if a.trades else "None",
+            ("net selling" if net < 0 else "net buying") if a.trades else "no open-market trades",
+            delta_color="off",
+            delta_arrow="off",
+            help="Open-market purchases minus sales (SEC codes P and S). Grants, option exercises, "
+            "tax withholding, and gifts are excluded because they aren't investment decisions.",
+            border=True,
+        )
+
+    for note in result.data.notes:
+        st.info(note, icon=":material/info:")
+
+    if a is not None:
+        st.markdown(f"**Insider trades** · {md(a.summary())}")
+        for flag in a.flags:
+            icon = ":material/trending_up:" if flag.tone == "positive" else ":material/warning:"
+            (st.success if flag.tone == "positive" else st.warning)(f"**{flag.title}.** {md(flag.detail)}", icon=icon)
+        if a.trades:
+            shown = insider_table(a).head(MAX_INSIDER_ROWS)
+            st.table(shown.set_index("Date"))
+            if len(a.trades) > MAX_INSIDER_ROWS:
+                st.caption(f"Showing the {MAX_INSIDER_ROWS} most recent of {len(a.trades)} trades; totals include all.")
+        if routine := routine_text(a.routine_counts):
+            st.caption(routine)
+        st.caption(md(
+            f"Flags: {own.CLUSTER_MIN_BUYERS}+ insiders buying within {own.CLUSTER_WINDOW_DAYS} days; any open-market "
+            f"buy by a CEO, CFO, COO, president, or chair; sales of ${own.LARGE_SALE_VALUE / 1e6:.0f}M+ in a day, or "
+            f"{own.LARGE_SALE_STAKE:.0%}+ of a person's holdings (when at least ${own.LARGE_SALE_STAKE_MIN_VALUE / 1e6:.0f}M)."
+        ))
+
+    if o is not None and o.top_holders:
+        reported = {h.date_reported for h in o.top_holders if h.date_reported}
+        as_of = f" as of {max(reported):%b} {max(reported).day}, {max(reported).year}" if reported else ""
+        st.markdown(f"**Top institutional holders**{as_of}")
+        st.table(holders_table(o).set_index("Holder"))
+        st.caption(
+            "From 13F filings, which institutions submit up to 45 days after each quarter ends, so "
+            "holdings can be several months old."
+        )
 
 
 # ---------------------------------------------------------------- 5. news
