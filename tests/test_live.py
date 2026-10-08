@@ -48,3 +48,18 @@ def test_live_price_trends(symbol: str) -> None:
     assert result.ok
     assert result.data.sma200 is not None and result.data.rsi14 is not None
     assert all(p.benchmark_return is not None for p in result.data.performance)
+
+
+def test_live_finnhub_aapl() -> None:
+    from brief.finnhub_client import get_next_earnings, get_wall_street_view
+
+    _, info = validate_ticker("AAPL")
+    assert get_next_earnings("AAPL").ok
+    view = get_wall_street_view("AAPL", info)
+    assert view.ok and view.data.consensus is not None and view.data.price_target is not None
+
+
+def test_live_finnhub_spy() -> None:
+    from brief.finnhub_client import get_next_earnings
+
+    assert not get_next_earnings("SPY").ok  # ETFs have no earnings date

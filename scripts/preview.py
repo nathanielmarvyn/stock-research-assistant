@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from brief.financials import get_financials  # noqa: E402
+from brief.finnhub_client import get_next_earnings, get_wall_street_view  # noqa: E402
 from brief.market_data import (  # noqa: E402
     AssetType,
     TickerValidationError,
@@ -63,6 +64,13 @@ def main(raw: str) -> None:
         print(f"   Market cap {big(s.market_cap)}  Dividend yield {fmt(s.dividend_yield, '.2%')}")
         if s.sector:
             print(f"   {s.sector} / {s.industry}")
+    if ticker.asset_type is AssetType.STOCK:
+        earnings = get_next_earnings(ticker.symbol)
+        if earnings.ok:
+            e = earnings.data
+            print(f"   Next earnings {e.date:%b %d, %Y} ({e.timing or 'time TBD'}), EPS est. {fmt(e.eps_estimate, '.2f')}")
+        else:
+            print(f"   Next earnings: {earnings.error}")
 
     trends = get_price_trends(ticker.symbol)
     if header("Price trends", trends):
@@ -84,6 +92,17 @@ def main(raw: str) -> None:
             for h in e.top_holdings[:10]:
                 print(f"   {h.symbol:<6} {h.name:<30} {h.weight:6.2%}")
         return
+
+    street = get_wall_street_view(ticker.symbol, info)
+    if header("Wall Street view", street):
+        c, pt = street.data.consensus, street.data.price_target
+        if c:
+            drift = f", prior month {c.prior_score:.2f}" if c.prior_score else ""
+            print(f"   Consensus {c.label} (score {c.score:.2f} on 1–5{drift}) from {c.total} analysts, {c.period:%b %Y}")
+            print(f"   Strong buy {c.strong_buy} | Buy {c.buy} | Hold {c.hold} | Sell {c.sell} | Strong sell {c.strong_sell}")
+        if pt:
+            print(f"   Avg price target {fmt(pt.mean, ',.2f')} ({fmt(pt.upside, '+.1%')} vs. current), "
+                  f"range {fmt(pt.low, ',.2f')}–{fmt(pt.high, ',.2f')}, {pt.analyst_count} analysts")
 
     fin = get_financials(ticker.symbol, info)
     if header("Financials", fin):
