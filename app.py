@@ -48,7 +48,14 @@ STYLES = """
 /* Selectors use ARIA roles, which are stabler than Streamlit's generated class names. */
 .st-key-hero_search [role="group"] { min-height: 3.25rem; border-radius: 999px; padding-left: .9rem; }
 .st-key-hero_search input[role="combobox"] { font-size: 1.05rem; }
-.st-key-hero_picks { display: flex; justify-content: center; }  /* the chip group sizes to its content */
+/* The chip widget is stretched to the search box's width (see suggestions()); center its row. */
+.st-key-hero_picks [data-testid="stButtonGroup"] > div:last-child { justify-content: center; }
+.st-key-hero_picks button { flex: 0 0 auto; }  /* natural chip size, not stretched */
+/* The logo in the top bar is the home link. */
+.tb-home-link { color: inherit; text-decoration: none; display: inline-block; border-radius: .4rem;
+  transition: opacity .15s ease; }
+.tb-home-link:hover { opacity: .75; }
+.tb-home-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .tb-tagline { text-align: center; opacity: .8; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
 .tb-footnote { text-align: center; opacity: .65; font-size: .8rem; margin-top: 2.5rem; }
 @media (prefers-reduced-motion: reduce) { .st-key-hero, .st-key-topbar, .st-key-brief_body { animation: none; } }
@@ -79,11 +86,6 @@ def on_pick(key: str) -> None:
     st.session_state[key] = None
 
 
-def go_home() -> None:
-    """Back to the search page."""
-    st.query_params.clear()
-
-
 def search_box(key: str, placeholder: str = SEARCH_PLACEHOLDER) -> None:
     """Search-as-you-type over ~11,000 tickers and company names; free text is accepted too."""
     st.selectbox(
@@ -100,9 +102,11 @@ def search_box(key: str, placeholder: str = SEARCH_PLACEHOLDER) -> None:
     )
 
 
-def suggestions(key: str, options: tuple[str, ...] = SUGGESTIONS) -> None:
-    """Quick-pick chips."""
-    st.pills("Popular", options, key=key, label_visibility="collapsed", on_change=on_pick, args=(key,))
+def suggestions(key: str, options: tuple[str, ...] = SUGGESTIONS, width: str = "content") -> None:
+    """Quick-pick chips. ``width="stretch"`` lets the homepage center them under the search box."""
+    st.pills(
+        "Popular", options, key=key, label_visibility="collapsed", width=width, on_change=on_pick, args=(key,)
+    )
 
 
 # ---------------------------------------------------------------- views
@@ -120,17 +124,17 @@ def home() -> None:
                 "risk, insider activity, news, and a grounded AI analysis.</p>"
             )
             search_box("hero_search")
-            suggestions("hero_picks")
+            suggestions("hero_picks", width="stretch")
             st.html(f'<p class="tb-footnote">{DISCLAIMER}</p>')
 
 
 def top_bar() -> None:
-    """Compact header for a brief: home, brand, search, and suggestions."""
+    """Compact header for a brief: the logo (a link home), search, and suggestions."""
     with st.container(key="topbar"):
-        home_col, brand_col, search_col, picks_col = st.columns([1.2, 1.9, 3.3, 2.8], vertical_alignment="center")
-        home_col.button("Home", icon=":material/home:", key="home", help="Back to search", on_click=go_home)
+        brand_col, search_col, picks_col = st.columns([1.9, 3.6, 3.0], vertical_alignment="center")
         with brand_col:
-            st.html(graphics.brand_html("small", ui.palette()))
+            # "?" drops the ?ticker=... query, which is the homepage.
+            st.html(graphics.brand_html("small", ui.palette(), href="?"))
         with search_col:
             search_box("top_search", "Search company or ticker")
         with picks_col:
