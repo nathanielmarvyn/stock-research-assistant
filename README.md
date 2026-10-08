@@ -4,7 +4,7 @@ Type a US stock or ETF ticker and get a one-page research brief: a snapshot, the
 
 Built as a portfolio project to show both sides of the work: financial analysis (what to measure, how to read it, where common metrics mislead) and software engineering (modular design, testing, failure handling, cost control).
 
-**Live demo:** _[add your Streamlit Community Cloud link here]_
+**Live demo:** [tickerbrief.streamlit.app](https://tickerbrief.streamlit.app/) (try `?ticker=AAPL`, `?ticker=JPM`, or `?ticker=SPY`)
 
 ![Snapshot section for SPY](docs/screenshots/overview.png)
 _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
