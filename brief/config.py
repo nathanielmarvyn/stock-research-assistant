@@ -46,6 +46,12 @@ class Settings:
     # in testing while running fastest. Thinking tokens count toward max_tokens.
     sentiment_effort: str = "low"
     sentiment_max_tokens: int = 3000
+    # The at-a-glance summary is a separate fast call so it doesn't wait on the full analysis.
+    summary_model: str = "claude-haiku-5-5"
+    # Medium effort: low was faster (~2.5s vs ~6s) but sometimes garbled or ran long, and
+    # this is the most-read block. Thinking counts toward max_tokens, so leave headroom.
+    summary_effort: str = "medium"
+    summary_max_tokens: int = 6000
     # Sonnet's adaptive thinking counts toward max_tokens, so leave headroom.
     # Worst case at $10/M output tokens is about $0.08 per analysis.
     analysis_max_tokens: int = 8000

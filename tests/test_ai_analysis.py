@@ -194,3 +194,9 @@ def test_ownership_facts(aapl_sections) -> None:
     section = facts["ownership_and_insiders"]
     assert section["held_by_institutions"] == "66.3%"
     assert section["insider_activity_6m"]["flags"] and "grants" in section["insider_activity_6m"]["note"]
+
+
+def test_dollar_figures_with_decimals_are_checked_whole() -> None:
+    facts = {"eps_diluted": "4.81", "price": "$336.67"}
+    assert ai.unverified_in_texts(["Diluted EPS of $4.81 at a price of $336.67."], facts) == []
+    assert ai.unverified_in_texts(["EPS of $4.99."], facts) == ["$4.99"]
