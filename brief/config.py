@@ -40,7 +40,7 @@ class Settings:
 
     # Claude models: a cheap one for repetitive headline scoring,
     # a stronger one for the written analysis.
-    sentiment_model: str = "claude-haiku-4-5-20251001"
+    sentiment_model: str = "claude-haiku-4-5"
     analysis_model: str = "claude-sonnet-5-5"
     sentiment_max_tokens: int = 1500
     analysis_max_tokens: int = 1500
