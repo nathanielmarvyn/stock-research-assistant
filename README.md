@@ -1,5 +1,7 @@
 # Stock Research Assistant
 
+[![tests](https://github.com/nathanielmarvyn/stock-research-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/nathanielmarvyn/stock-research-assistant/actions/workflows/tests.yml)
+
 Type a US stock or ETF ticker and get a one-page research brief: a snapshot, the last four quarters of financials, price trends against the S&P 500, the Wall Street view, recent news with sentiment, and an AI-written bull/bear analysis that is grounded only in the data on the page.
 
 Built as a portfolio project to show both sides of the work: financial analysis (what to measure, how to read it, where common metrics mislead) and software engineering (modular design, testing, failure handling, cost control).
@@ -168,6 +170,8 @@ python scripts/preview.py AAPL
 pytest            # offline unit tests (fast, no network, no API keys)
 pytest -m live    # live smoke tests against Yahoo Finance and Finnhub with AAPL and SPY
 ```
+
+GitHub Actions runs the offline suite on Python 3.11, 3.12, and 3.13 for every push and pull request (no API keys needed).
 
 ### Configuration
 
