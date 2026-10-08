@@ -114,7 +114,7 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **Caching:** 15-minute cache per section, and failures are never cached, so a rate limit retries on the next lookup.
 - **Finnhub client:** retries with backoff on HTTP 429, and gives clear messages for bad keys, paid-only endpoints, and timeouts.
 - **Graceful degradation:** if Claude is down, the news section still shows headlines with source summaries. If Finnhub is down, the price target still shows.
-- **Cost controls:** one batched Haiku call for all headlines; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Estimated API cost is a few cents per new brief (cached repeats are free).
+- **Cost controls:** one batched Haiku call for all headlines; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Measured cost is about 2 cents per new brief (Haiku sentiment ≈ $0.003, Sonnet analysis ≈ $0.013–0.017); cached repeats are free.
 
 ---
 

@@ -64,6 +64,7 @@ def test_etf_facts_use_profile_not_financials(spy_info, spy_holdings_df) -> None
     assert "financials" not in facts and "financials" not in facts["unavailable_sections"]
     assert facts["etf_profile"]["expense_ratio"] == "0.095%"
     assert "wall_street" not in facts["unavailable_sections"]  # not expected for ETFs
+    assert not {"market_cap", "sector", "industry"} & facts["snapshot"].keys()  # company-only fields
 
 
 # ---------------------------------------------------------------- grounding check
