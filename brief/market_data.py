@@ -22,7 +22,7 @@ import pandas as pd
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
 
-from brief.models import SectionResult, safe_section
+from brief.models import DataUnavailableError, SectionResult, safe_section
 
 SOURCE = "Yahoo Finance (yfinance)"
 
@@ -44,7 +44,7 @@ class TickerValidationError(ValueError):
     """Raised when a ticker is malformed, unknown, or unsupported."""
 
 
-class DataSourceError(RuntimeError):
+class DataSourceError(DataUnavailableError):
     """Raised when an upstream data provider fails or rate-limits us."""
 
 
@@ -97,7 +97,7 @@ class EtfProfile:
 # ---------------------------------------------------------------- helpers
 
 
-def _num(info: dict[str, Any], *keys: str) -> float | None:
+def first_number(info: dict[str, Any], *keys: str) -> float | None:
     """Return the first present, finite numeric value among ``keys``."""
     for key in keys:
         value = info.get(key)
@@ -114,7 +114,7 @@ def _pct_to_fraction(value: float | None) -> float | None:
 
 def quote_time(info: dict[str, Any]) -> datetime | None:
     """Timestamp of the last market quote, if yfinance reports one."""
-    ts = _num(info, "regularMarketTime")
+    ts = first_number(info, "regularMarketTime")
     return datetime.fromtimestamp(ts, tz=timezone.utc) if ts else None
 
 
@@ -152,7 +152,7 @@ def fetch_info(symbol: str) -> dict[str, Any]:
 def parse_ticker_info(symbol: str, info: dict[str, Any]) -> TickerInfo:
     """Validate a raw info payload and extract the ticker's identity."""
     quote_type = info.get("quoteType")
-    if not quote_type or _num(info, "regularMarketPrice", "currentPrice") is None:
+    if not quote_type or first_number(info, "regularMarketPrice", "currentPrice") is None:
         raise TickerValidationError(f"No security found for '{symbol}'.")
     if quote_type not in _QUOTE_TYPES:
         raise TickerValidationError(
@@ -189,28 +189,28 @@ def validate_ticker(raw: str) -> tuple[TickerInfo, dict[str, Any]]:
 
 def parse_snapshot(info: dict[str, Any]) -> Snapshot:
     """Build a Snapshot from a raw info payload; missing fields become None."""
-    price = _num(info, "currentPrice", "regularMarketPrice")
-    prev_close = _num(info, "regularMarketPreviousClose", "previousClose")
+    price = first_number(info, "currentPrice", "regularMarketPrice")
+    prev_close = first_number(info, "regularMarketPreviousClose", "previousClose")
 
-    change = _num(info, "regularMarketChange")
+    change = first_number(info, "regularMarketChange")
     if change is None and price is not None and prev_close:
         change = price - prev_close
-    change_pct = _pct_to_fraction(_num(info, "regularMarketChangePercent"))
+    change_pct = _pct_to_fraction(first_number(info, "regularMarketChangePercent"))
     if change_pct is None and change is not None and prev_close:
         change_pct = change / prev_close
 
     # ``dividendYield`` is percent units; the trailing field is already a fraction.
-    dividend_yield = _pct_to_fraction(_num(info, "dividendYield"))
+    dividend_yield = _pct_to_fraction(first_number(info, "dividendYield"))
     if dividend_yield is None:
-        dividend_yield = _num(info, "trailingAnnualDividendYield")
+        dividend_yield = first_number(info, "trailingAnnualDividendYield")
 
     return Snapshot(
         price=price,
         day_change=change,
         day_change_pct=change_pct,
-        market_cap=_num(info, "marketCap"),
-        week52_low=_num(info, "fiftyTwoWeekLow"),
-        week52_high=_num(info, "fiftyTwoWeekHigh"),
+        market_cap=first_number(info, "marketCap"),
+        week52_low=first_number(info, "fiftyTwoWeekLow"),
+        week52_high=first_number(info, "fiftyTwoWeekHigh"),
         dividend_yield=dividend_yield,
         sector=info.get("sector"),
         industry=info.get("industry"),
@@ -254,8 +254,8 @@ def parse_etf_profile(info: dict[str, Any], holdings: list[Holding]) -> EtfProfi
     """Combine info fields and holdings into an EtfProfile."""
     return EtfProfile(
         # ``netExpenseRatio`` is percent units (0.0945 == 0.0945%).
-        expense_ratio=_pct_to_fraction(_num(info, "netExpenseRatio")),
-        aum=_num(info, "totalAssets"),
+        expense_ratio=_pct_to_fraction(first_number(info, "netExpenseRatio")),
+        aum=first_number(info, "totalAssets"),
         category=info.get("category"),
         fund_family=info.get("fundFamily"),
         top_holdings=holdings,

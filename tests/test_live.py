@@ -30,3 +30,11 @@ def test_live_etf_spy() -> None:
 def test_live_invalid_ticker() -> None:
     with pytest.raises(TickerValidationError):
         validate_ticker("ZZZZQ")
+
+
+def test_live_financials_aapl() -> None:
+    from brief.financials import get_financials
+
+    _, info = validate_ticker("AAPL")
+    result = get_financials("AAPL", info)
+    assert result.ok and result.data.quarters[0].revenue > 0

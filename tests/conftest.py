@@ -36,3 +36,19 @@ def spy_holdings_df() -> pd.DataFrame:
     records = load_json("spy_top_holdings.json")
     df = pd.DataFrame(records).rename(columns={"weight": "Holding Percent"})
     return df.set_index("Symbol")
+
+
+def load_statement(name: str) -> pd.DataFrame:
+    """Load a saved yfinance statement (rows=line items, columns=quarter ends)."""
+    df = pd.read_csv(FIXTURES / name, index_col=0)
+    df.columns = pd.to_datetime(df.columns)
+    return df
+
+
+@pytest.fixture
+def aapl_statements() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    return (
+        load_statement("aapl_quarterly_income.csv"),
+        load_statement("aapl_quarterly_cashflow.csv"),
+        load_statement("aapl_quarterly_balance.csv"),
+    )

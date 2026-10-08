@@ -19,6 +19,14 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
+class DataUnavailableError(Exception):
+    """An expected, user-facing failure (no data, provider down, rate-limited).
+
+    ``safe_section`` shows its message as-is and skips the traceback, unlike
+    unexpected exceptions, which are logged in full as bugs.
+    """
+
+
 def utc_now() -> datetime:
     """Current time as a timezone-aware UTC datetime."""
     return datetime.now(timezone.utc)
@@ -61,6 +69,9 @@ def safe_section(
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> SectionResult[T]:
             try:
                 return func(*args, **kwargs)
+            except DataUnavailableError as exc:
+                logger.warning("Section %s unavailable: %s", func.__name__, exc)
+                return SectionResult.failure(str(exc), source=source)
             except Exception as exc:  # noqa: BLE001 - isolation is the point
                 logger.exception("Section %s failed", func.__name__)
                 return SectionResult.failure(
