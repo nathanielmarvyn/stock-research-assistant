@@ -38,3 +38,13 @@ def test_live_financials_aapl() -> None:
     _, info = validate_ticker("AAPL")
     result = get_financials("AAPL", info)
     assert result.ok and result.data.quarters[0].revenue > 0
+
+
+@pytest.mark.parametrize("symbol", ["AAPL", "SPY"])
+def test_live_price_trends(symbol: str) -> None:
+    from brief.trends import get_price_trends
+
+    result = get_price_trends(symbol)
+    assert result.ok
+    assert result.data.sma200 is not None and result.data.rsi14 is not None
+    assert all(p.benchmark_return is not None for p in result.data.performance)

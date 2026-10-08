@@ -20,6 +20,7 @@ from brief.market_data import (  # noqa: E402
     validate_ticker,
 )
 from brief.models import DataUnavailableError, SectionResult  # noqa: E402
+from brief.trends import get_price_trends  # noqa: E402
 
 
 def fmt(value: float | None, spec: str) -> str:
@@ -62,6 +63,18 @@ def main(raw: str) -> None:
         print(f"   Market cap {big(s.market_cap)}  Dividend yield {fmt(s.dividend_yield, '.2%')}")
         if s.sector:
             print(f"   {s.sector} / {s.industry}")
+
+    trends = get_price_trends(ticker.symbol)
+    if header("Price trends", trends):
+        t = trends.data
+        print(f"   {'Period':<7}{ticker.symbol:>9}{t.benchmark:>9}{'Excess':>9}")
+        for p in t.performance:
+            print(f"   {p.period:<7}{fmt(p.ticker_return, '+.1%'):>9}{fmt(p.benchmark_return, '+.1%'):>9}"
+                  f"{fmt(p.excess_return, '+.1%'):>9}")
+        print(f"   50-day SMA {fmt(t.sma50, ',.2f')} ({'above' if t.above_sma50 else 'below'})  "
+              f"200-day SMA {fmt(t.sma200, ',.2f')} ({'above' if t.above_sma200 else 'below'})")
+        print(f"   RSI(14) {fmt(t.rsi14, '.1f')}  Volume {fmt(t.latest_volume, ',.0f')} vs 30-day avg "
+              f"{fmt(t.avg_volume_30d, ',.0f')} ({fmt(t.relative_volume, '.2f')}x)")
 
     if ticker.asset_type is AssetType.ETF:
         etf = get_etf_profile(ticker.symbol, info)
