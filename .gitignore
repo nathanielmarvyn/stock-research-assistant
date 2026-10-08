@@ -19,3 +19,6 @@ install.cmd
 
 # Local tooling
 .claude/
+
+# Full-size screen recording (README uses the compressed demo.gif)
+docs/screenshots/demo-original.gif

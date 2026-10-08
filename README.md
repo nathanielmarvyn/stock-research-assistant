@@ -6,8 +6,8 @@ Built as a portfolio project to show both sides of the work: financial analysis 
 
 **Live demo:** _[add your Streamlit Community Cloud link here]_
 
-![Brief overview](docs/screenshots/overview.png)
-_Screenshot placeholder: full brief for AAPL_
+![Snapshot section for SPY](docs/screenshots/overview.png)
+_Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 
 ---
 
@@ -25,14 +25,14 @@ _Screenshot placeholder: full brief for AAPL_
 
 Every section shows when its data is from ("Data as of Oct 7, 2026, 4:00 PM ET") and where it came from.
 
-![Price trends](docs/screenshots/price-trends.png)
-_Screenshot placeholder: price chart and performance vs. SPY_
+![Price trends section](docs/screenshots/price-trends.png)
+_Interactive price chart with 50/200-day moving averages, a separate volume panel, and total returns._
 
-![AI analysis](docs/screenshots/ai-analysis.png)
-_Screenshot placeholder: AI analysis with bull/bear cases_
+![AI analysis section](docs/screenshots/ai-analysis.png)
+_AI analysis built only from the data on the page, with every figure checked against the source._
 
-![Demo](docs/screenshots/demo.gif)
-_GIF placeholder: entering a ticker and scrolling the brief_
+![Demo of generating a brief](docs/screenshots/demo.gif)
+_Generating a brief for JPMorgan (JPM) on the live app._
 
 ---
 
