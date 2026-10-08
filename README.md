@@ -21,7 +21,10 @@ _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 | **Financials** (stocks) | Last 4 quarters: revenue, net income, EPS, free cash flow, gross/operating/net margins, YoY change; trailing and forward P/E; debt-to-equity | Yahoo Finance |
 | **Fund profile** (ETFs) | Expense ratio, AUM, category, top 10 holdings | Yahoo Finance |
 | **Price trends** | Interactive chart with 50/200-day moving averages and volume; 1M/6M/YTD/1Y total return vs. SPY; RSI(14); volume vs. 30-day average | Yahoo Finance |
+| **Risk profile** | 1Y volatility, total return, and Sharpe ratio; 1Y/2Y max drawdown with dates and recovery; 2Y beta and correlation; up/down capture; each beside SPY's value, plus a drawdown chart | Yahoo Finance |
 | **Wall Street view** (stocks) | Analyst consensus with month-over-month drift, rating distribution, average price target and implied move | Finnhub, Yahoo Finance |
+| **Earnings track record** (stocks) | Last 4 quarters of EPS vs. consensus: beat, miss, or in line (±1%), surprise %, and an estimate-vs-actual chart | Finnhub |
+| **Ownership & insider activity** (stocks) | 6 months of open-market insider trades (who, role, shares, value, date, % of holdings), net buying vs. selling, flags for notable activity, % held by insiders and institutions, top 10 institutional holders with quarterly change | Finnhub (SEC Form 4), Yahoo Finance |
 | **Recent news** | Up to 10 headlines from the past two weeks with source, date, link, one-line summary, and sentiment, plus an overall score | Finnhub, Claude Haiku 5.5 |
 | **AI analysis** | Summary, bull case, bear case, key risks, what to watch, with a grounding check and disclaimer | Claude Sonnet 5.5 |
 
@@ -48,16 +51,19 @@ flowchart LR
     L --> MD[market_data.py<br/>validate, snapshot, ETF profile]
     L --> FIN[financials.py<br/>quarters, margins, YoY]
     L --> TR[trends.py + indicators.py<br/>returns, SMA, RSI, volume]
-    L --> FH[finnhub_client.py<br/>earnings, ratings]
+    L --> RK[risk.py<br/>vol, beta, drawdown, Sharpe]
+    L --> FH[finnhub_client.py<br/>earnings, ratings, surprises]
+    L --> OW[ownership.py<br/>insiders, institutions]
     L --> NW[news.py<br/>headlines + sentiment]
     L --> AI[ai_analysis.py<br/>bull/bear analysis]
 
-    MD & FIN & TR --> YF[(yfinance)]
-    FH & NW --> FHAPI[(Finnhub API)]
+    MD & FIN & TR & RK --> YF[(yfinance)]
+    FH & NW & OW --> FHAPI[(Finnhub API)]
+    OW --> YF
     NW -->|one batched call| HAIKU[(Claude Haiku 5.5)]
     AI -->|facts document only| SONNET[(Claude Sonnet 5.5)]
 
-    MD & FIN & TR & FH & NW --> AI
+    MD & FIN & TR & RK & FH & OW & NW --> AI
     L --> UI[ui/sections.py + ui/charts.py<br/>render each section]
 ```
 
@@ -79,7 +85,9 @@ brief/
   financials.py         Quarterly results, margins, YoY, P/E, D/E
   indicators.py         Pure indicator math: returns, SMA, Wilder RSI, relative volume
   trends.py             Price-trends section built from indicators + SPY benchmark
-  finnhub_client.py     Finnhub HTTP client, earnings date, analyst consensus, price target
+  risk.py               Risk metrics: volatility, beta, correlation, drawdown, Sharpe, capture
+  finnhub_client.py     Finnhub HTTP client, earnings date and track record, analyst consensus, price target
+  ownership.py          Insider trades (SEC codes + roles), flags, institutional ownership
   news.py               Headline selection and batched sentiment scoring
   ai_analysis.py        Facts document, Claude analysis, grounding check
   formatting.py         Number formatting shared by UI and prompts
@@ -102,6 +110,10 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **Debt-to-equity is left blank when equity is negative** (common after heavy buybacks), because the ratio becomes misleading.
 - **Free cash flow is hidden for banks and insurers.** Their operating cash flow includes deposit, loan, and premium flows; JPMorgan's swings by hundreds of billions per quarter. Visa and Mastercard (also "Financial Services") keep it.
 - **Returns are total returns** (dividend-adjusted prices), and YTD is measured from the prior year's last close.
+- **Risk windows are chosen deliberately.** Volatility and Sharpe use 1 year; beta and correlation use 2 years because 1 year proved unstable (AAPL's correlation with SPY was 0.36 over 1 year vs. 0.61 over 2). The 2-year beta (1.07) matches Yahoo's published 1.069.
+- **Only real insider trades count.** yfinance's insider summary counts stock grants and option exercises as "purchases" (AAPL showed 12 purchases when insiders made none), so trades are classified by their SEC Form 4 code: only open-market purchases (P) and sales (S) count, and same-day slices are combined per person. Roles come from a second source because Finnhub doesn't provide them.
+- **Insider flags are explicit rules,** shown on the page: 3+ insiders buying within 30 days, any open-market buy by a senior executive, and sales of $5M+ in a day or 20%+ of a person's holdings. Sales carry a caveat, since they're often pre-scheduled (10b5-1 plans).
+- **EPS surprises are labeled by basis.** Finnhub's "actual" EPS is the adjusted figure analysts forecast and can differ from GAAP diluted EPS (JPM: $6.14 vs. $7.70), so the page says which is which.
 - **RSI uses Wilder's smoothing**, unit-tested against a hand-calculated example and cross-checked against an independent implementation.
 
 **AI that stays grounded**
@@ -205,16 +217,20 @@ Non-secret settings live in `brief/config.py`: Claude models, token limits and e
 
 ---
 
-## Roadmap (v2)
+## Roadmap
 
-- Compare 2–3 tickers side by side
-- Peer valuation table (P/E, margins, growth vs. industry peers)
-- Export the brief to PDF
-- Insider transactions and institutional ownership
-- Simple DCF / reverse-DCF view
-- Sentiment trend over time
-- GitHub Actions CI running the test suite on every push
-- Docker image for self-hosting
+**v2 (in progress)**
+- ✅ GitHub Actions CI on every push
+- ✅ Risk profile (volatility, beta, drawdown, Sharpe, capture ratios)
+- ✅ Earnings track record
+- ✅ Ownership and insider activity with rule-based flags
+- "Classic research" visual theme and an interactive, rule-based signal-balance scale
+
+**Later**
+- Client-ready PDF export of the brief
+- Portfolio analyzer: sector exposure, blended risk, ETF overlap
+- Peer valuation table and side-by-side comparison
+- Simple reverse-DCF view
 
 ---
 

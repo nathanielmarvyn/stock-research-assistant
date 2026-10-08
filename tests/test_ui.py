@@ -132,3 +132,41 @@ def test_earnings_table_and_chart() -> None:
     fig = charts.earnings_chart(h)
     assert [t.name for t in fig.data] == ["Estimate", "Actual"]
     assert list(fig.data[0].x)[-1] == "Jun 2026"  # oldest to newest, left to right
+
+
+def _aapl_ownership():
+    from brief import ownership as own
+    from tests.conftest import load_json
+
+    tx = pd.DataFrame(load_json("yf_insider_transactions_aapl.json"))
+    roster = pd.DataFrame(load_json("yf_insider_roster_aapl.json"))
+    insiders = own.parse_insider_activity(
+        load_json("finnhub_insiders_aapl.json"), own.build_role_lookup(tx, roster), date(2026, 10, 8)
+    )
+    breakdown = own.parse_ownership(
+        load_json("yf_major_holders_aapl.json"), pd.DataFrame(load_json("yf_institutional_holders_aapl.json"))
+    )
+    return insiders, breakdown
+
+
+def test_insider_and_holder_tables() -> None:
+    insiders, breakdown = _aapl_ownership()
+    t = ui.insider_table(insiders)
+    assert list(t.columns) == ["Date", "Insider", "Role", "Trade", "Shares", "Value", "% of holdings"]
+    assert set(t["Trade"]) == {"▼ Sell"}
+    h = ui.holders_table(breakdown)
+    assert h["Holder"].iloc[0] == "Blackrock Inc." and h["Change vs. prior quarter"].iloc[0].startswith("+")
+
+
+def test_routine_text_orders_by_count() -> None:
+    assert ui.routine_text({"gifts": 3, "option exercises": 18}) == (
+        "Not counted as buying or selling: 18 option exercises, 3 gifts."
+    )
+    assert ui.routine_text({}) == ""
+
+
+@pytest.mark.parametrize("value, shown", [(43_390_000, "$43.4M"), (519_113.6, "$519K"), (850, "$850"), (-81_900_000, "-$81.9M"), (None, "—")])
+def test_money_compact(value, shown) -> None:
+    from brief.formatting import money_compact
+
+    assert money_compact(value) == shown

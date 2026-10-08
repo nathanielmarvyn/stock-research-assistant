@@ -12,6 +12,7 @@ the parsers, not in the UI.
 from __future__ import annotations
 
 import math
+import numbers
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -108,7 +109,8 @@ def first_number(info: dict[str, Any], *keys: str) -> float | None:
     """Return the first present, finite numeric value among ``keys``."""
     for key in keys:
         value = info.get(key)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
+        # numbers.Real also covers numpy scalars (int64, float64) from pandas tables.
+        if isinstance(value, numbers.Real) and not isinstance(value, bool):
             if math.isfinite(value):
                 return float(value)
     return None
