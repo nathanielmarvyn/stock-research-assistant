@@ -101,20 +101,43 @@ def _first_sentence(text: str, limit: int = 180) -> str:
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
-def is_relevant(headline: str, symbol: str, keyword: str | None) -> bool:
-    """True if the headline names the company or its ticker."""
+# Index funds are written about by their index ("S&P 500"), not their ticker.
+# Phrases found in a fund's name, plus a few popular funds whose names omit the index.
+_INDEX_PHRASES = (
+    "S&P 500", "Nasdaq-100", "Nasdaq 100", "Dow Jones Industrial", "Russell 2000",
+    "Russell 1000", "S&P MidCap 400", "S&P SmallCap 600", "MSCI EAFE", "MSCI Emerging Markets",
+)
+_INDEX_ALIASES = {"Nasdaq-100": "Nasdaq", "Nasdaq 100": "Nasdaq", "Dow Jones Industrial": "Dow"}
+_ETF_INDEX_BY_SYMBOL = {
+    "QQQ": ("Nasdaq",), "QQQM": ("Nasdaq",), "DIA": ("Dow",), "IWM": ("Russell 2000",),
+    "VOO": ("S&P 500",), "IVV": ("S&P 500",), "SPLG": ("S&P 500",),
+}
+
+
+def etf_keywords(symbol: str, fund_name: str) -> tuple[str, ...]:
+    """Index phrases that identify an index fund's news ('SPDR S&P 500 ETF' -> 'S&P 500')."""
+    found = [_INDEX_ALIASES.get(p, p) for p in _INDEX_PHRASES if p.lower() in fund_name.lower()]
+    found += _ETF_INDEX_BY_SYMBOL.get(symbol, ())
+    return tuple(dict.fromkeys(found))  # dedupe, keep order
+
+
+def is_relevant(headline: str, symbol: str, keywords: tuple[str, ...] = ()) -> bool:
+    """True if the headline names the ticker or any keyword (company or index name)."""
     if re.search(rf"\b{re.escape(symbol)}\b", headline):  # case-sensitive: avoids 'a', 'it'
         return True
-    return bool(keyword and re.search(rf"\b{re.escape(keyword)}\b", headline, re.IGNORECASE))
+    # Lookarounds instead of \b so phrases ending in symbols (S&P 500) still match cleanly.
+    return any(
+        re.search(rf"(?<!\w){re.escape(k)}(?!\w)", headline, re.IGNORECASE) for k in keywords
+    )
 
 
 def select_headlines(
     articles: list[dict[str, Any]],
     symbol: str,
-    keyword: str | None,
+    keywords: tuple[str, ...],
     max_items: int,
 ) -> list[Headline]:
-    """Up to ``max_items`` deduplicated headlines naming the ticker or ``keyword``, newest first."""
+    """Up to ``max_items`` deduplicated headlines naming the ticker or a keyword, newest first."""
     seen: set[str] = set()
     chosen: list[Headline] = []
 
@@ -123,7 +146,7 @@ def select_headlines(
         if not title or not url or not ts:
             continue
         key = _normalize(title)[:80]
-        if key in seen or not is_relevant(title, symbol, keyword):
+        if key in seen or not is_relevant(title, symbol, keywords):
             continue
         seen.add(key)
         chosen.append(Headline(
@@ -255,22 +278,25 @@ def get_news(
 ) -> SectionResult[NewsBrief]:
     """News section. Sentiment failures degrade to unscored headlines.
 
-    Fund names make poor keywords ('State Street SPDR...' would match 'State'),
-    so ETFs are matched on the ticker alone.
+    Fund names make poor company keywords ('State Street SPDR...' would match
+    'State'), so ETFs match on the ticker plus the index they track, if known.
     """
     settings = get_settings()
     today = today or date.today()
     articles = (finnhub or FinnhubClient()).company_news(
         symbol, today - timedelta(days=settings.news_lookback_days), today
     )
-    keyword = None if is_etf else company_keyword(company_name)
-    headlines = select_headlines(articles, symbol, keyword, settings.max_headlines)
+    if is_etf:
+        keywords = etf_keywords(symbol, company_name)
+    else:
+        keyword = company_keyword(company_name)
+        keywords = (keyword,) if keyword else ()
+    headlines = select_headlines(articles, symbol, keywords, settings.max_headlines)
+    named = " or ".join((symbol, *keywords))
     if not headlines:
-        raise DataUnavailableError(
-            f"No headlines naming {symbol} in the past {settings.news_lookback_days} days."
-        )
+        raise DataUnavailableError(f"No headlines naming {named} in the past {settings.news_lookback_days} days.")
     coverage = (
-        f"Only {len(headlines)} headline{'s' if len(headlines) != 1 else ''} named {symbol} "
+        f"Only {len(headlines)} headline{'s' if len(headlines) != 1 else ''} named {named} "
         f"in the past {settings.news_lookback_days} days."
         if len(headlines) < MIN_HEADLINES
         else None

@@ -141,3 +141,15 @@ def test_section_api_error_is_friendly(aapl_sections) -> None:
 def test_section_needs_core_data() -> None:
     result = ai.get_ai_analysis(AAPL, llm=fake_llm(parsed=sample_analysis()))
     assert not result.ok and "Not enough data" in result.error
+
+
+def test_benchmark_is_not_compared_with_itself(spy_info) -> None:
+    import pandas as pd
+    from brief.trends import build_price_trends
+
+    idx = pd.bdate_range("2025-01-01", periods=504, tz="America/New_York")
+    hist = pd.DataFrame({"Close": [100 * 1.001**i for i in range(504)], "Volume": [1e6] * 504}, index=idx)
+    trends = ok(build_price_trends(hist, hist, "SPY"))
+    facts = ai.build_facts(SPY, snapshot=ok(parse_snapshot(spy_info)), trends=trends)
+    assert "performance_vs_benchmark" not in facts["price_trends"]
+    assert "excess" not in str(facts["price_trends"]["performance"])

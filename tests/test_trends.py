@@ -54,3 +54,19 @@ def test_bar_close_time_is_4pm_new_york_in_utc() -> None:
 
     bar = pd.Timestamp("2026-10-07", tz="America/New_York")
     assert bar_close_time(bar) == pd.Timestamp("2026-10-07 20:00", tz="UTC")  # EDT = UTC-4
+
+
+def test_volume_uses_prior_session_while_market_open() -> None:
+    from datetime import datetime, timezone
+
+    idx = pd.bdate_range("2026-08-26", "2026-10-08", tz="America/New_York")
+    hist = pd.DataFrame({"Close": [100.0] * len(idx), "Volume": [40e6] * (len(idx) - 1) + [12e6]}, index=idx)
+    midday = datetime(2026, 10, 8, 16, 30, tzinfo=timezone.utc)  # 12:30 PM New York
+    t = build_price_trends(hist, None, "SPY", now=midday)
+    assert t.volume_from_prior_session
+    assert t.latest_volume == 40e6 and t.relative_volume == pytest.approx(1.0)
+
+    after_close = datetime(2026, 10, 8, 21, 0, tzinfo=timezone.utc)  # 5 PM New York
+    t = build_price_trends(hist, None, "SPY", now=after_close)
+    assert not t.volume_from_prior_session
+    assert t.relative_volume == pytest.approx(0.3)

@@ -145,8 +145,14 @@ def build_facts(
         unavailable.append("financials")
 
     if t := _data(trends):
-        facts["price_trends"] = {
-            "performance_vs_benchmark": [
+        if ticker.symbol == t.benchmark:
+            # Comparing the benchmark with itself yields a meaningless +0.0% "excess".
+            performance = [
+                {"period": p.period, "total_return": fmt.pct(p.ticker_return, signed=True)} for p in t.performance
+            ]
+            performance_key = "performance"
+        else:
+            performance = [
                 {
                     "period": p.period,
                     ticker.symbol: fmt.pct(p.ticker_return, signed=True),
@@ -154,12 +160,20 @@ def build_facts(
                     "excess": fmt.pct(p.excess_return, signed=True),
                 }
                 for p in t.performance
-            ],
+            ]
+            performance_key = "performance_vs_benchmark"
+        volume_key = (
+            "volume_vs_30_day_average_prior_full_session"
+            if t.volume_from_prior_session
+            else "volume_vs_30_day_average"
+        )
+        facts["price_trends"] = {
+            performance_key: performance,
             "last_close": fmt.money(t.last_close),
             "sma_50_day": fmt.money(t.sma50),
             "sma_200_day": fmt.money(t.sma200),
             "rsi_14_day": fmt.num(t.rsi14, 1),
-            "volume_vs_30_day_average": fmt.num(t.relative_volume, 2, "x"),
+            volume_key: fmt.num(t.relative_volume, 2, "x"),
         }
     else:
         unavailable.append("price_trends")
