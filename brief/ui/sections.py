@@ -25,7 +25,7 @@ from brief.ownership import InsiderActivity, OwnershipActivity, OwnershipBreakdo
 from brief.risk import Drawdown, RiskProfile, risk_summary
 from brief.signals import Signal, balance_label, net_score
 from brief.trends import PriceTrends
-from brief.ui import charts
+from brief.ui import charts, graphics
 
 EASTERN = ZoneInfo("America/New_York")
 SENTIMENT_BADGES = {  # icon + label, never color alone
@@ -124,10 +124,11 @@ def render_signal_balance(signals: list[Signal]) -> None:
         bulls = sum(1 for s in signals if s.score > 0 and weights[s.key] > 0)
         bears = sum(1 for s in signals if s.score < 0 and weights[s.key] > 0)
         neutral = sum(1 for s in signals if weights[s.key] > 0) - bulls - bears
-        st.markdown(
-            f"**{balance_label(net)}** · net {net:+.2f} · {bulls} bullish · {bears} bearish · {neutral} neutral"
+        st.html(graphics.gauge_html(net, balance_label(net), palette()))
+        st.html(
+            f'<p style="text-align:center;opacity:.7;font-size:.9rem;margin:.25rem 0 0">'
+            f"{bulls} bullish · {bears} bearish · {neutral} neutral factors</p>"
         )
-        st.plotly_chart(charts.balance_meter(net, palette()), width="stretch", config={"displayModeBar": False})
     st.plotly_chart(charts.signal_bars(signals, weights, palette()), width="stretch", config={"displayModeBar": False})
 
     # A keyed toggle (not an expander): its state survives the fragment rerun each slider

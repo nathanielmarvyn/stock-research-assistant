@@ -1,8 +1,8 @@
-# Stock Research Assistant
+# TickerBrief
 
 [![tests](https://github.com/nathanielmarvyn/stock-research-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/nathanielmarvyn/stock-research-assistant/actions/workflows/tests.yml)
 
-Type a US stock or ETF ticker and get a one-page research brief: a snapshot, the last four quarters of financials, price trends against the S&P 500, the Wall Street view, recent news with sentiment, and an AI-written bull/bear analysis that is grounded only in the data on the page.
+Search any US stock or ETF by ticker or company name and get a one-page research brief: a snapshot, the last four quarters of financials, price trends against the S&P 500, the Wall Street view, recent news with sentiment, and an AI-written bull/bear analysis that is grounded only in the data on the page.
 
 Built as a portfolio project to show both sides of the work: financial analysis (what to measure, how to read it, where common metrics mislead) and software engineering (modular design, testing, failure handling, cost control).
 
@@ -15,9 +15,11 @@ _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 
 ## Features
 
+**Search-first homepage.** A centered search box with live suggestions as you type, matching tickers *and* company names across ~11,000 US-listed stocks, ETFs, ADRs, and REITs (typing "apple" offers AAPL · Apple Inc. first). Once a brief opens, search, popular picks, and a home button move into a compact top bar, and the brief fades in. No sidebar.
+
 | Section | What it shows | Source |
 |---|---|---|
-| **Signal balance** | A rule-based bull/bear reading at the top of the brief: each factor scored −1 to +1 with its rule shown on hover, a net meter, and sliders to re-weight factors. Framed as a summary of the evidence, not a recommendation | Computed from the sections below |
+| **Signal balance** | A rule-based bull/bear reading at the top of the brief: a half-dial gauge whose needle sweeps to the net reading, each factor's −1 to +1 score below it with its rule on hover, and sliders to re-weight factors. Framed as a summary of the evidence, not a recommendation | Computed from the sections below |
 | **Snapshot** | Price and day change, market cap, 52-week range (with position bar), next earnings date, dividend yield | Yahoo Finance, Finnhub |
 | **Financials** (stocks) | Last 4 quarters: revenue, net income, EPS, free cash flow, gross/operating/net margins, YoY change; trailing and forward P/E; debt-to-equity | Yahoo Finance |
 | **Fund profile** (ETFs) | Expense ratio, AUM, category, top 10 holdings | Yahoo Finance |
@@ -93,6 +95,7 @@ brief/
   news.py               Headline selection and batched sentiment scoring
   ai_analysis.py        Facts document, Claude analysis, grounding check
   signals.py            Signal balance: one pure, tested rule per factor, weighted net score
+  symbols.py            Search universe: ~11,000 tickers + cleaned company names, name/ticker resolution
   formatting.py         Number formatting shared by UI and prompts
   ui/
     loaders.py          Cached loaders (Streamlit cache_data)
@@ -140,6 +143,8 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **Caching:** 15-minute cache per section, and failures are never cached, so a rate limit retries on the next lookup.
 - **Finnhub client:** retries with backoff on HTTP 429, and gives clear messages for bad keys, paid-only endpoints, and timeouts.
 - **Graceful degradation:** if Claude is down, the news section still shows headlines with source summaries. If Finnhub is down, the price target still shows.
+- **Search that ranks sensibly without a search engine:** Finnhub's free symbol list is filtered to major exchanges and cleaned ("BERKSHIRE HATHAWAY INC-CL B" becomes "Berkshire Hathaway Inc Class B"), well-known companies are listed first, and the search box filters by substring while keeping that order. Free text still works: "jp morgan" + Enter resolves to JPM, and unknown input is tried as a ticker.
+- **Custom graphics survive Streamlit's sanitizer:** the logo and gauge are SVGs delivered as data-URI images (inline SVG is stripped), with the needle's sweep animation defined inside the SVG and disabled for viewers who prefer reduced motion.
 - **Interactive without waste:** the signal-balance sliders run inside a Streamlit fragment, so moving one re-weights cached data instantly instead of rerunning the page or calling any API.
 - **Cost controls:** one batched Haiku call for all headlines at `low` effort; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Measured usage per new brief: Haiku sentiment ≈ 2K input / 0.7K output tokens, Sonnet analysis ≈ 2–3K input / ~1K output tokens (about 1.3–1.7 cents); cached repeats are free.
 
@@ -181,7 +186,7 @@ ANTHROPIC_API_KEY=your_anthropic_key   # starts with sk-ant-api03-
 streamlit run app.py
 ```
 
-Open http://localhost:8501, or go straight to a brief with http://localhost:8501/?ticker=AAPL.
+Open http://localhost:8501 and search by ticker or company name, or go straight to a brief with http://localhost:8501/?ticker=AAPL.
 
 To print a brief in the terminal without the UI:
 
@@ -238,7 +243,8 @@ Non-secret settings live in `brief/config.py`: Claude models, token limits and e
 - ✅ Earnings track record
 - ✅ Ownership and insider activity with rule-based flags
 - ✅ "Classic research" theme with light and dark modes
-- ✅ Interactive, rule-based signal-balance scale
+- ✅ Interactive, rule-based signal-balance gauge
+- ✅ TickerBrief branding, search-first homepage, company-name search with live suggestions
 
 **Later**
 - Client-ready PDF export of the brief
