@@ -43,7 +43,10 @@ class Settings:
     sentiment_model: str = "claude-haiku-4-5"
     analysis_model: str = "claude-sonnet-5-5"
     sentiment_max_tokens: int = 1500
-    analysis_max_tokens: int = 1500
+    # Sonnet's adaptive thinking counts toward max_tokens, so leave headroom.
+    # Worst case at $10/M output tokens is about $0.08 per analysis.
+    analysis_max_tokens: int = 8000
+    analysis_effort: str = "medium"  # low | medium | high | xhigh | max
 
     cache_ttl_seconds: int = 15 * 60
     request_timeout_seconds: int = 10
