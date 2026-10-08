@@ -42,15 +42,21 @@ def logo_svg(size: int = 44, p: Palette = LIGHT) -> str:
     )
 
 
-def brand_html(size: str = "large", p: Palette = LIGHT) -> str:
-    """Logo plus the TickerBrief wordmark in the heading serif."""
+def brand_html(size: str = "large", p: Palette = LIGHT, href: str | None = None) -> str:
+    """Logo plus the TickerBrief wordmark in the heading serif; a link when ``href`` is given."""
     logo_px, text_px, gap = (64, 56, 16) if size == "large" else (30, 22, 8)
-    return (
+    brand = (
         f'<div class="tb-brand tb-brand-{size}" style="display:flex;align-items:center;gap:{gap}px;'
         f'justify-content:{"center" if size == "large" else "flex-start"}">'
         f"{svg_img(logo_svg(logo_px, p), f'{logo_px}px', APP_NAME + ' logo')}"
         f'<span style="font-family:Lora,Georgia,serif;font-weight:600;font-size:{text_px}px;'
         f'letter-spacing:-0.01em;line-height:1">{APP_NAME}</span></div>'
+    )
+    if href is None:
+        return brand
+    return (
+        f'<a class="tb-home-link" href="{escape(href)}" title="Back to home" '
+        f'aria-label="{APP_NAME} home">{brand}</a>'
     )
 
 

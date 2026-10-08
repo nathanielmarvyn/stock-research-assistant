@@ -52,5 +52,12 @@ def test_gauge_html_embeds_image_and_readout() -> None:
     assert "-0.50" in html and "Mostly bearish signals" in html
 
 
+def test_brand_as_home_link() -> None:
+    html = graphics.brand_html("small", href="?")
+    assert html.startswith('<a class="tb-home-link" href="?"')  # same-tab link back to the homepage
+    assert 'aria-label="TickerBrief home"' in html
+    assert not graphics.brand_html("large").startswith("<a")  # homepage logo isn't a link
+
+
 def test_brand_embeds_logo_as_image() -> None:
     assert '<img src="data:image/svg+xml;base64,' in graphics.brand_html("small")
