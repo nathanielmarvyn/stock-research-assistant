@@ -30,6 +30,7 @@ from brief.models import DataUnavailableError, SectionResult
 from brief.news import NewsBrief, get_news
 from brief.ownership import OwnershipActivity, get_ownership_activity
 from brief.risk import RiskProfile, fetch_risk_free_rate, get_risk_profile
+from brief.symbols import SymbolEntry, fallback_universe, fetch_universe
 from brief.trends import PriceTrends, fetch_price_history, get_price_trends
 
 TTL = get_settings().cache_ttl_seconds
@@ -89,6 +90,19 @@ def load_etf_profile(symbol: str) -> SectionResult[EtfProfile]:
 def load_financials(symbol: str) -> SectionResult[Financials]:
     """Quarterly financials and valuation ratios."""
     return get_financials(symbol, load_ticker(symbol)[1])
+
+
+@st.cache_data(ttl=24 * 60 * 60, show_spinner=False)
+def _cached_universe() -> list[SymbolEntry]:
+    return fetch_universe()  # raises (uncached) on failure
+
+
+def load_universe() -> list[SymbolEntry]:
+    """Searchable tickers and company names (refreshed daily); the curated list if Finnhub is down."""
+    try:
+        return _cached_universe()
+    except Exception:  # search must always work, even without the full list
+        return fallback_universe()
 
 
 @st.cache_data(ttl=TTL, show_spinner=False)

@@ -1,4 +1,4 @@
-"""Stock Research Assistant: Streamlit entry point.
+"""TickerBrief: Streamlit entry point.
 
 Run locally:  streamlit run app.py
 """
@@ -13,52 +13,128 @@ from brief.config import get_settings
 from brief.market_data import AssetType, TickerValidationError, first_number, normalize_symbol
 from brief.models import DataUnavailableError
 from brief.signals import build_signals
-from brief.ui import loaders
+from brief.symbols import resolve_query
+from brief.ui import graphics, loaders
 from brief.ui import sections as ui
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-st.set_page_config(page_title="Stock Research Assistant", page_icon=":material/query_stats:", layout="wide")
+st.set_page_config(
+    page_title="TickerBrief",
+    page_icon=":material/candlestick_chart:",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
-EXAMPLES = ("AAPL", "MSFT", "JPM", "SPY", "QQQ")
+SUGGESTIONS = ("AAPL", "MSFT", "NVDA", "JPM", "SPY", "QQQ")
+TOP_SUGGESTIONS = SUGGESTIONS[:4]  # fewer chips fit beside the search box
 DISCLAIMER = (
     "For informational and educational purposes only. Not investment advice. Data may be delayed or "
     "incomplete; verify independently before making any investment decision."
 )
+SEARCH_PLACEHOLDER = "Search a company or ticker, e.g. Apple or AAPL"
+
+# Layout and motion. Keyed containers get a ".st-key-<key>" class, which is what these target.
+STYLES = """
+<style>
+[data-testid="stMainBlockContainer"] { max-width: 1120px; padding-top: 3.75rem; }  /* clears Streamlit's header strip */
+@keyframes tb-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes tb-slide-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.st-key-hero { animation: tb-fade-up .55s ease-out both; }
+.st-key-topbar { animation: tb-slide-in .4s ease-out both; padding-bottom: .5rem;
+  border-bottom: 1px solid rgba(128,128,128,.25); margin-bottom: .75rem; }
+.st-key-brief_body { animation: tb-fade-up .5s .1s ease-out both; }
+/* Selectors use ARIA roles, which are stabler than Streamlit's generated class names. */
+.st-key-hero_search [role="group"] { min-height: 3.25rem; border-radius: 999px; padding-left: .9rem; }
+.st-key-hero_search input[role="combobox"] { font-size: 1.05rem; }
+.st-key-hero_picks { display: flex; justify-content: center; }  /* the chip group sizes to its content */
+.tb-tagline { text-align: center; opacity: .8; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
+.tb-footnote { text-align: center; opacity: .65; font-size: .8rem; margin-top: 2.5rem; }
+@media (prefers-reduced-motion: reduce) { .st-key-hero, .st-key-topbar, .st-key-brief_body { animation: none; } }
+</style>
+"""
 
 
-def sidebar() -> None:
-    """Ticker form and examples; the chosen ticker lives in the URL (?ticker=AAPL) so briefs are shareable."""
-    with st.sidebar:
-        st.header("Research a ticker", anchor=False)
-        with st.form("ticker_form", border=False):
-            raw = st.text_input("Ticker symbol", value=st.query_params.get("ticker", ""), placeholder="e.g. AAPL")
-            if st.form_submit_button("Generate brief", type="primary", width="stretch") and raw.strip():
-                st.query_params["ticker"] = raw.strip().upper()
-                st.rerun()
-        example = st.pills("Examples", EXAMPLES, key="example")
-        if example and example != st.session_state.get("last_example"):
-            st.session_state["last_example"] = example
-            st.query_params["ticker"] = example
-            st.rerun()
-        st.divider()
-        st.caption(
-            "US-listed stocks and ETFs. Data from Yahoo Finance and Finnhub, cached for "
-            f"{get_settings().cache_ttl_seconds // 60} minutes. Summaries and analysis by Claude."
-        )
-        st.caption(DISCLAIMER)
+# ---------------------------------------------------------------- navigation
 
 
-def landing() -> None:
-    """Shown before a ticker is chosen."""
-    st.title("Stock Research Assistant", anchor=False)
-    st.markdown(
-        "Enter a US stock or ETF ticker to get a one-page research brief: a snapshot, the last four "
-        "quarters of financials, price trends against the S&P 500, the Wall Street view, recent news "
-        "with sentiment, and an AI-written bull/bear analysis grounded in that data."
+def go_to(symbol: str | None) -> None:
+    """Open a brief. The ticker lives in the URL (?ticker=AAPL), so briefs are shareable."""
+    if symbol:
+        st.query_params["ticker"] = symbol
+
+
+def on_search(key: str) -> None:
+    """Search box callback: resolve a picked label, ticker, or company name, then clear the box."""
+    choice = st.session_state.get(key)
+    if choice:
+        go_to(resolve_query(choice, loaders.load_universe()))
+    st.session_state[key] = None
+
+
+def on_pick(key: str) -> None:
+    """Suggestion chip callback."""
+    go_to(st.session_state.get(key))
+    st.session_state[key] = None
+
+
+def go_home() -> None:
+    """Back to the search page."""
+    st.query_params.clear()
+
+
+def search_box(key: str, placeholder: str = SEARCH_PLACEHOLDER) -> None:
+    """Search-as-you-type over ~11,000 tickers and company names; free text is accepted too."""
+    st.selectbox(
+        "Search a company or ticker",
+        [entry.label for entry in loaders.load_universe()],
+        index=None,
+        placeholder=placeholder,
+        key=key,
+        label_visibility="collapsed",
+        accept_new_options=True,  # brand-new tickers still work; "apple" + Enter resolves by name
+        filter_mode="contains",  # keeps list order, so well-known companies match first
+        on_change=on_search,
+        args=(key,),
     )
-    st.info("Pick an example in the sidebar or type a ticker to begin.", icon=":material/arrow_back:")
+
+
+def suggestions(key: str, options: tuple[str, ...] = SUGGESTIONS) -> None:
+    """Quick-pick chips."""
+    st.pills("Popular", options, key=key, label_visibility="collapsed", on_change=on_pick, args=(key,))
+
+
+# ---------------------------------------------------------------- views
+
+
+def home() -> None:
+    """Centered logo, wordmark, search box, and suggestions. No sidebar."""
+    with st.container(key="hero"):
+        st.html('<div style="height:14vh"></div>')
+        _, middle, _ = st.columns([1, 2.4, 1])
+        with middle:
+            st.html(graphics.brand_html("large", ui.palette()))
+            st.html(
+                '<p class="tb-tagline">One-page research briefs for US stocks and ETFs: fundamentals, '
+                "risk, insider activity, news, and a grounded AI analysis.</p>"
+            )
+            search_box("hero_search")
+            suggestions("hero_picks")
+            st.html(f'<p class="tb-footnote">{DISCLAIMER}</p>')
+
+
+def top_bar() -> None:
+    """Compact header for a brief: home, brand, search, and suggestions."""
+    with st.container(key="topbar"):
+        home_col, brand_col, search_col, picks_col = st.columns([1.2, 1.9, 3.3, 2.8], vertical_alignment="center")
+        home_col.button("Home", icon=":material/home:", key="home", help="Back to search", on_click=go_home)
+        with brand_col:
+            st.html(graphics.brand_html("small", ui.palette()))
+        with search_col:
+            search_box("top_search", "Search company or ticker")
+        with picks_col:
+            suggestions("top_picks", TOP_SUGGESTIONS)
 
 
 def ai_allowance(symbol: str) -> str | None:
@@ -173,13 +249,18 @@ def brief(raw: str) -> None:
 
 
 def main() -> None:
-    """App entry point."""
-    sidebar()
+    """App entry point: the search page, or a brief when ?ticker= is set."""
+    st.html(STYLES)
     ticker = st.query_params.get("ticker", "").strip()
-    if ticker:
-        brief(ticker)
-    else:
-        landing()
+    # One shared slot for both views: the first element of the new view replaces the old
+    # one immediately, instead of the previous page lingering, greyed out, while a brief loads.
+    with st.empty().container():
+        if ticker:
+            top_bar()
+            with st.container(key="brief_body"):
+                brief(ticker)
+        else:
+            home()
 
 
 main()

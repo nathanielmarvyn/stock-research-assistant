@@ -1,0 +1,198 @@
+[
+  {
+    "symbol": "COKE",
+    "description": "COCA-COLA CONSOLIDATED INC",
+    "displaySymbol": "COKE",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "QQQ",
+    "description": "INVESCO QQQ TRUST SERIES 1",
+    "displaySymbol": "QQQ",
+    "type": "ETP",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "SPY",
+    "description": "SS SPDR S&P 500 ETF TRUST-US",
+    "displaySymbol": "SPY",
+    "type": "ETP",
+    "mic": "ARCX"
+  },
+  {
+    "symbol": "XOM",
+    "description": "EXXONMOBIL HOLDINGS CORP",
+    "displaySymbol": "XOM",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "AAPL",
+    "description": "APPLE INC",
+    "displaySymbol": "AAPL",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "META",
+    "description": "META PLATFORMS INC-CLASS A",
+    "displaySymbol": "META",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "JPM",
+    "description": "JPMORGAN CHASE & CO",
+    "displaySymbol": "JPM",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "VOO",
+    "description": "VANGUARD S&P 500 ETF",
+    "displaySymbol": "VOO",
+    "type": "ETP",
+    "mic": "ARCX"
+  },
+  {
+    "symbol": "MSFT",
+    "description": "MICROSOFT CORP",
+    "displaySymbol": "MSFT",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "BRK.B",
+    "description": "BERKSHIRE HATHAWAY INC-CL B",
+    "displaySymbol": "BRK.B",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "GOOG",
+    "description": "ALPHABET INC-CL C",
+    "displaySymbol": "GOOG",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "KO",
+    "description": "COCA-COLA CO/THE",
+    "displaySymbol": "KO",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "AMZN",
+    "description": "AMAZON.COM INC",
+    "displaySymbol": "AMZN",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "TSM",
+    "description": "TAIWAN SEMICONDUCTOR-SP ADR",
+    "displaySymbol": "TSM",
+    "type": "ADR",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "NVDA",
+    "description": "NVIDIA CORP",
+    "displaySymbol": "NVDA",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "GOOGL",
+    "description": "ALPHABET INC-CL A",
+    "displaySymbol": "GOOGL",
+    "type": "Common Stock",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "BRK.A",
+    "description": "BERKSHIRE HATHAWAY INC-CL A",
+    "displaySymbol": "BRK.A",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "T",
+    "description": "AT&T INC",
+    "displaySymbol": "T",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "V",
+    "description": "VISA INC-CLASS A SHARES",
+    "displaySymbol": "V",
+    "type": "Common Stock",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "APLE",
+    "description": "APPLE HOSPITALITY REIT INC",
+    "displaySymbol": "APLE",
+    "type": "REIT",
+    "mic": "XNYS"
+  },
+  {
+    "symbol": "MTSFF",
+    "description": "MITSUI FUDOSAN CO LTD",
+    "displaySymbol": "MTSFF",
+    "type": "Common Stock",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "PRPEF",
+    "description": "PURPOSE ETHER ETF",
+    "displaySymbol": "PRPEF",
+    "type": "ETP",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "HSKCF",
+    "description": "HASEKO CORP",
+    "displaySymbol": "HSKCF",
+    "type": "Common Stock",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "SNLAF",
+    "description": "SINO LAND CO",
+    "displaySymbol": "SNLAF",
+    "type": "Common Stock",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "SSLLF",
+    "description": "SILTRONIC AG",
+    "displaySymbol": "SSLLF",
+    "type": "Common Stock",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "AEAEW",
+    "description": "ALTENERGY ACQUISITION -CW23",
+    "displaySymbol": "AEAEW",
+    "type": "Equity WRT",
+    "mic": "OOTC"
+  },
+  {
+    "symbol": "AMACW",
+    "description": "AMR RESOURCES ACQUISITION CO",
+    "displaySymbol": "AMACW",
+    "type": "Equity WRT",
+    "mic": "XNAS"
+  },
+  {
+    "symbol": "LOTWW",
+    "description": "LOTUS TECHNOLOGY INC-28",
+    "displaySymbol": "LOTWW",
+    "type": "Equity WRT",
+    "mic": "XNAS"
+  }
+]

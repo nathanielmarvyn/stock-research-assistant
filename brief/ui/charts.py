@@ -19,7 +19,7 @@ from plotly.subplots import make_subplots
 
 from brief.finnhub_client import AnalystConsensus, EarningsHistory
 from brief.market_data import Holding
-from brief.signals import BEARISH_BELOW, BULLISH_ABOVE, Signal
+from brief.signals import Signal
 
 
 @dataclass(frozen=True)
@@ -213,32 +213,6 @@ def holdings_chart(holdings: list[Holding], p: Palette = LIGHT) -> go.Figure:
 
 
 # ---------------------------------------------------------------- signal balance
-
-
-def balance_meter(net: float, p: Palette = LIGHT) -> go.Figure:
-    """A -1..+1 scale with bearish / mixed / bullish zones and a marker at the net reading."""
-    fig = go.Figure()
-    zones = ((-1, BEARISH_BELOW, p.bear_tint), (BEARISH_BELOW, BULLISH_ABOVE, "rgba(0,0,0,0)"), (BULLISH_ABOVE, 1, p.bull_tint))
-    for x0, x1, color in zones:
-        fig.add_shape(type="rect", x0=x0, x1=x1, y0=0, y1=1, fillcolor=color, line_width=0, layer="below")
-    fig.add_shape(type="line", x0=-1, x1=1, y0=0.5, y1=0.5, line=dict(color=p.neutral, width=2))
-    fig.add_shape(type="line", x0=0, x1=0, y0=0.25, y1=0.75, line=dict(color=p.neutral, width=1))
-    marker_color = p.bull_strong if net > BULLISH_ABOVE else p.bear_strong if net < BEARISH_BELOW else p.text
-    fig.add_trace(
-        go.Scatter(
-            x=[net], y=[0.5], mode="markers",
-            marker=dict(symbol="diamond", size=20, color=marker_color, line=dict(width=2, color=p.gap)),
-            hovertemplate=f"Net reading {net:+.2f}<extra></extra>", showlegend=False,
-        )
-    )
-    for x, text, anchor in ((-1, "Mostly bearish", "left"), (0, "Mixed", "center"), (1, "Mostly bullish", "right")):
-        fig.add_annotation(x=x, y=-0.05, text=text, showarrow=False, yanchor="top", xanchor=anchor,
-                           font=dict(size=12, color=p.text))
-    _base_layout(fig, height=96, p=p)
-    fig.update_layout(margin=dict(l=8, r=8, t=4, b=24), hovermode="closest")
-    fig.update_xaxes(range=[-1.04, 1.04], visible=False)
-    fig.update_yaxes(range=[-0.35, 1], visible=False)
-    return fig
 
 
 def signal_bars(signals: list[Signal], weights: dict[str, float], p: Palette = LIGHT) -> go.Figure:
