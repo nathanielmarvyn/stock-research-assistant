@@ -56,6 +56,7 @@ STYLES = """
   transition: opacity .15s ease; }
 .tb-home-link:hover { opacity: .75; }
 .tb-home-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.tb-summary { font-size: 1.1rem; line-height: 1.65; margin: .25rem 0 .5rem; }
 .tb-tagline { text-align: center; opacity: .8; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
 .tb-footnote { text-align: center; opacity: .65; font-size: .8rem; margin-top: 2.5rem; }
 @media (prefers-reduced-motion: reduce) { .st-key-hero, .st-key-topbar, .st-key-brief_body { animation: none; } }
@@ -162,8 +163,18 @@ def market_pe() -> float | None:
         return None
 
 
+STOCK_TABS = ("Bull/Bear & Risks", "Financials", "Valuation", "Insider & Ownership", "News")
+ETF_TABS = ("Bull/Bear & Risks", "Fund profile", "News")
+
+
 def brief(raw: str) -> None:
-    """Render the full brief for one ticker. Each section fails independently."""
+    """Render one ticker's brief, top to bottom.
+
+    Snapshot, AI summary, price trends, and the signal gauge come first because
+    many readers stop there; everything else lives in tabs. The summary and
+    gauge need every section's data, so their slots are reserved up front and
+    filled once the tabs have loaded. Each section still fails independently.
+    """
     try:
         symbol = normalize_symbol(raw)
         with st.spinner(f"Looking up {symbol}…"):
@@ -177,56 +188,69 @@ def brief(raw: str) -> None:
     snapshot = loaders.load_snapshot(symbol)
     ui.render_header(ticker, snapshot)
 
+    # 1. Snapshot
     with st.spinner("Loading market data…"):
         etf = loaders.load_etf_profile(symbol) if is_etf else None
         earnings = None if is_etf else loaders.load_earnings(symbol)
     ui.render_snapshot(snapshot, earnings, etf)
 
-    # Reserve the "at a glance" slot near the top; it's filled once every section has loaded.
-    st.divider()
-    balance_slot = st.container()
+    # 2. AI summary (slot filled at the end)
+    summary_slot = st.empty()
+    with summary_slot.container():
+        ui.summary_placeholder()
 
-    financials = wall_street = earnings_history = ownership = None
-    st.divider()
-    if is_etf:
-        ui.render_etf_profile(etf)
-    else:
-        with st.spinner("Loading financials…"):
-            financials = loaders.load_financials(symbol)
-        ui.render_financials(financials)
-
+    # 3. Price trends
     st.divider()
     with st.spinner("Loading price history…"):
         trends = loaders.load_trends(symbol)
     ui.render_trends(trends, symbol)
 
+    # 4. Signal balance gauge (slot filled once the factors' data is in)
     st.divider()
-    with st.spinner("Measuring risk…"):
-        risk = loaders.load_risk(symbol)
-    ui.render_risk(risk, symbol)
+    gauge_slot = st.container()
 
-    if not is_etf:
-        st.divider()
-        with st.spinner("Loading analyst ratings…"):
-            wall_street = loaders.load_wall_street(symbol)
-        ui.render_wall_street(wall_street, snapshot.data.price if snapshot.ok else None)
-
-        st.divider()
-        with st.spinner("Loading earnings history…"):
-            earnings_history = loaders.load_earnings_history(symbol)
-        ui.render_earnings_history(earnings_history)
-
-        st.divider()
-        with st.spinner("Loading ownership and insider activity…"):
-            ownership = loaders.load_ownership(symbol)
-        ui.render_ownership(ownership)
-
+    # 5. Tabs
     st.divider()
-    with st.spinner("Loading news and scoring sentiment…"):
-        news = loaders.load_news(symbol)
-    ui.render_news(news)
+    financials = wall_street = earnings_history = ownership = None
+    tabs = st.tabs(ETF_TABS if is_etf else STOCK_TABS)
+    analysis_tab = tabs[0]
+    analysis_slot = analysis_tab.container()  # the AI analysis goes above the risk profile, written last
 
-    with balance_slot:
+    if is_etf:
+        with tabs[1]:
+            ui.render_etf_profile(etf)
+    else:
+        with tabs[1]:
+            with st.spinner("Loading financials…"):
+                financials = loaders.load_financials(symbol)
+            ui.render_financials(financials)
+            st.divider()
+            with st.spinner("Loading earnings history…"):
+                earnings_history = loaders.load_earnings_history(symbol)
+            ui.render_earnings_history(earnings_history)
+        with tabs[2]:
+            ui.render_valuation(financials, market_pe(), symbol)
+            st.divider()
+            with st.spinner("Loading analyst ratings…"):
+                wall_street = loaders.load_wall_street(symbol)
+            ui.render_wall_street(wall_street, snapshot.data.price if snapshot.ok else None)
+        with tabs[3]:
+            with st.spinner("Loading ownership and insider activity…"):
+                ownership = loaders.load_ownership(symbol)
+            ui.render_ownership(ownership)
+
+    with tabs[-1]:
+        with st.spinner("Loading news and scoring sentiment…"):
+            news = loaders.load_news(symbol)
+        ui.render_news(news)
+
+    with analysis_tab:
+        st.divider()
+        with st.spinner("Measuring risk…"):
+            risk = loaders.load_risk(symbol)
+        ui.render_risk(risk, symbol)
+
+    with gauge_slot:
         signals = build_signals(
             ticker,
             trends=trends,
@@ -240,13 +264,18 @@ def brief(raw: str) -> None:
         )
         ui.render_signal_balance(signals)
 
-    st.divider()
     limit_message = ai_allowance(symbol)
-    analysis = None
+    summary = analysis = None
     if limit_message is None:
-        with st.spinner("Writing AI analysis…"):
-            analysis = loaders.load_analysis(symbol)
-    ui.render_analysis(analysis, limit_message)
+        summary = loaders.load_summary(symbol)
+    with summary_slot.container():
+        ui.render_summary(summary, limit_message)
+
+    with analysis_slot:
+        if limit_message is None:
+            with st.spinner("Writing AI analysis…"):
+                analysis = loaders.load_analysis(symbol)
+        ui.render_analysis(analysis, limit_message)
 
     st.divider()
     st.caption(f"Brief generated {ui.generated_at()}. {DISCLAIMER}")

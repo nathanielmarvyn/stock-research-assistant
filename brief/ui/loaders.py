@@ -15,6 +15,7 @@ import pandas as pd
 import streamlit as st
 
 from brief.ai_analysis import AnalysisResult, get_ai_analysis
+from brief.ai_summary import AISummary, get_ai_summary
 from brief.config import get_settings
 from brief.financials import Financials, get_financials
 from brief.finnhub_client import (
@@ -183,13 +184,10 @@ def load_news(symbol: str) -> SectionResult[NewsBrief]:
     return get_news(symbol, ticker.name, is_etf=ticker.asset_type is AssetType.ETF)
 
 
-@cache_successes
-def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
-    """AI analysis over the other sections (all of which are cache hits by now)."""
-    ticker = load_ticker(symbol)[0]
-    is_etf = ticker.asset_type is AssetType.ETF
-    return get_ai_analysis(
-        ticker,
+def _ai_inputs(symbol: str) -> dict[str, SectionResult[Any] | None]:
+    """Every section the AI writers read (all cache hits once the page has loaded them)."""
+    is_etf = load_ticker(symbol)[0].asset_type is AssetType.ETF
+    return dict(
         snapshot=load_snapshot(symbol),
         financials=None if is_etf else load_financials(symbol),
         etf=load_etf_profile(symbol) if is_etf else None,
@@ -201,3 +199,16 @@ def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
         ownership=None if is_etf else load_ownership(symbol),
         news=load_news(symbol),
     )
+
+
+@cache_successes
+def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
+    """Full bull/bear AI analysis over the other sections."""
+    return get_ai_analysis(load_ticker(symbol)[0], **_ai_inputs(symbol))
+
+
+@cache_successes
+def load_summary(symbol: str) -> SectionResult[AISummary]:
+    """The 3-4 sentence at-a-glance summary (separate fast call)."""
+    ticker, info = load_ticker(symbol)
+    return get_ai_summary(ticker, info.get("longBusinessSummary"), **_ai_inputs(symbol))

@@ -8,6 +8,7 @@ them raise, so one bad section can't stop the page.
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -15,6 +16,7 @@ import streamlit as st
 
 from brief import formatting as fmt
 from brief.ai_analysis import AnalysisResult
+from brief.ai_summary import AISummary
 from brief.financials import Financials
 from brief.finnhub_client import EPS_BASIS_NOTE, EarningsEvent, EarningsHistory, WallStreetView
 from brief.market_data import EtfProfile, Snapshot, TickerInfo
@@ -247,6 +249,59 @@ def financials_table(f: Financials) -> pd.DataFrame:
     }
     columns = [f"Qtr ended {q.period_end:%b} {q.period_end.day}, {q.period_end.year}" for q in f.quarters]
     return pd.DataFrame.from_dict(rows, orient="index", columns=columns)
+
+
+def summary_placeholder() -> None:
+    """Shown in the summary slot while the rest of the brief loads."""
+    with st.container(border=True):
+        st.markdown("**:material/auto_awesome: At a glance**")
+        st.caption("Writing a short summary once the data below has loaded…")
+
+
+def render_summary(summary: SectionResult[AISummary] | None, limit_message: str | None = None) -> None:
+    """The 3-4 sentence AI summary card under the snapshot: the most-read block on the page."""
+    with st.container(border=True):
+        st.markdown("**:material/auto_awesome: At a glance**")
+        if summary is None:
+            st.caption(limit_message or "AI summary not run.")
+            return
+        if not summary.ok:
+            st.caption(f"Summary unavailable: {summary.error}")
+            return
+        st.html(f'<p class="tb-summary">{escape(summary.data.text)}</p>')
+        if summary.data.unverified_numbers:
+            st.warning(
+                md("These figures couldn't be matched to the data in this brief. Treat them with caution: "
+                   + ", ".join(summary.data.unverified_numbers)),
+                icon=":material/warning:",
+            )
+        st.caption(
+            f"Written by {summary.data.model} from the data in this brief only, as of {as_of_text(summary)}. "
+            "Not investment advice."
+        )
+
+
+def render_valuation(financials: SectionResult[Financials], market_pe: float | None, symbol: str) -> None:
+    """Valuation: the stock's P/E next to the S&P 500's, with the premium or discount spelled out."""
+    if not section("Valuation", financials, f"latest quarter ended {as_of_text(financials, date_only=True)}"):
+        return
+    f = financials.data
+    cols = st.columns(3)
+    cols[0].metric(f"{symbol} P/E (trailing)", fmt.num(f.trailing_pe, 1), border=True,
+                   help="Price ÷ last 12 months' EPS. Blank when earnings are negative.")
+    cols[1].metric(f"{symbol} P/E (forward)", fmt.num(f.forward_pe, 1), border=True,
+                   help="Price ÷ analysts' estimated EPS for the next 12 months.")
+    cols[2].metric("S&P 500 P/E (trailing)", fmt.num(market_pe, 1), border=True,
+                   help="Trailing P/E of SPY, used as the market benchmark.")
+    if f.trailing_pe and market_pe and f.trailing_pe > 0:
+        gap = f.trailing_pe / market_pe - 1
+        direction = "premium to" if gap >= 0 else "discount to"
+        st.markdown(
+            f"{symbol} trades at a **{abs(gap):.0%} {direction}** the S&P 500 on trailing earnings. "
+            "A premium usually reflects expectations of faster growth; it also leaves less room for disappointment."
+        )
+    else:
+        st.caption("A P/E comparison isn't meaningful here (missing data or negative earnings).")
 
 
 def render_financials(financials: SectionResult[Financials]) -> None:

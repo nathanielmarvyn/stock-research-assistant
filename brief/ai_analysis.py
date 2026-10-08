@@ -310,7 +310,8 @@ def _risk_facts(m: RiskMetrics) -> dict[str, str]:
 
 # Figures worth checking: anything with a decimal point, %, $, or a T/B/M/x suffix.
 # Bare integers ("50-day", "2026", "Q3") are skipped as labels, not data.
-_FIGURE = re.compile(r"[-+]?\$?\d[\d,]*(?:\.\d+)?\s?(?:%|[TBMK]\b|x\b)|[-+]?\$\d[\d,]*|[-+]?\d+\.\d+")
+# The dollar alternative takes decimals too, so "$4.81" is checked as 4.81, not "$4".
+_FIGURE = re.compile(r"[-+]?\$?\d[\d,]*(?:\.\d+)?\s?(?:%|[TBMK]\b|x\b)|[-+]?\$\d[\d,]*(?:\.\d+)?|[-+]?\d+\.\d+")
 
 
 def _canonical(token: str) -> str:
@@ -320,8 +321,13 @@ def _canonical(token: str) -> str:
 
 def unverified_figures(analysis: Analysis, facts: dict[str, Any]) -> list[str]:
     """Figures in the analysis that don't appear anywhere in the facts."""
-    known = {_canonical(m) for m in _FIGURE.findall(json.dumps(facts, ensure_ascii=False))}
     texts = [analysis.summary, *analysis.bull_case, *analysis.bear_case, *analysis.key_risks, *analysis.what_to_watch]
+    return unverified_in_texts(texts, facts)
+
+
+def unverified_in_texts(texts: list[str], facts: dict[str, Any]) -> list[str]:
+    """Figures in any model-written text that don't appear anywhere in the facts."""
+    known = {_canonical(m) for m in _FIGURE.findall(json.dumps(facts, ensure_ascii=False))}
     found = []
     for text in texts:
         for token in _FIGURE.findall(text):

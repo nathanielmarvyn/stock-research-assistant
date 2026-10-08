@@ -21,6 +21,7 @@ from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
+from brief import indicators as ind
 from brief.market_data import SOURCE
 from brief.models import DataUnavailableError, SectionResult, safe_section, utc_now
 from brief.trends import bar_close_time, fetch_price_history
@@ -179,7 +180,9 @@ def compute_metrics(close: pd.Series, bench_close: pd.Series | None, risk_free: 
     returns = daily_returns(close)
     one_year = returns.iloc[-TRADING_DAYS:]
     close_1y = close.iloc[-(TRADING_DAYS + 1):]
-    return_1y = _clean(close_1y.iloc[-1] / close_1y.iloc[0] - 1) if len(close) > TRADING_DAYS else None
+    # Same calendar-year start as the price-trends section, so the page never shows two
+    # different "1-year returns" (252 trading days back can land a few days off).
+    return_1y = ind.period_return(close, ind.lookback_starts(close.index[-1])["1Y"])
     vol = annualized_volatility(one_year) if len(returns) >= TRADING_DAYS // 2 else None
 
     b = corr = up = down = None

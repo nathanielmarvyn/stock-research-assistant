@@ -155,3 +155,14 @@ def test_risk_summary_calmer_and_none_without_benchmark() -> None:
     p = risk.RiskProfile(metrics(0.10, 0.5), metrics(0.13, 0.96), "SPY", 0.04, 0, pd.DataFrame())
     assert risk.risk_summary(p, "KO").startswith("KO has been calmer than SPY, at about 0.8x")
     assert risk.risk_summary(risk.RiskProfile(metrics(0.1, 0.5), None, "SPY", 0.04, 0, pd.DataFrame()), "SPY") is None
+
+
+def test_one_year_return_matches_price_trends() -> None:
+    """Risk profile and price trends must report the same 1-year return."""
+    from brief.trends import build_price_trends
+
+    closes = [100 * (1 + 0.01 * math.sin(i / 7)) * 1.0005**i for i in range(504)]
+    hist = history(closes)
+    risk_1y = risk.build_risk_profile(hist, None, "SPY", 0.04, "XYZ").ticker.return_1y
+    trends_1y = next(p.ticker_return for p in build_price_trends(hist, None, "SPY").performance if p.period == "1Y")
+    assert risk_1y == pytest.approx(trends_1y)

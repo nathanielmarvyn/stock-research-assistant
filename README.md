@@ -15,11 +15,15 @@ _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 
 ## Features
 
-**Search-first homepage.** A centered search box with live suggestions as you type, matching tickers *and* company names across ~11,000 US-listed stocks, ETFs, ADRs, and REITs (typing "apple" offers AAPL · Apple Inc. first). Once a brief opens, search, popular picks, and a home button move into a compact top bar, and the brief fades in. No sidebar.
+**Search-first homepage.** A centered search box with live suggestions as you type, matching tickers *and* company names across ~11,000 US-listed stocks, ETFs, ADRs, and REITs (typing "apple" offers AAPL · Apple Inc. first). Once a brief opens, search and popular picks move into a compact top bar (the logo links home), and the brief fades in. No sidebar.
+
+**Page order built for skimming.** Snapshot, then a 3–4 sentence AI summary (what the company does, how it's performing, and the single biggest risk), then price trends and the signal-balance gauge. Everything else sits in tabs: Bull/Bear & Risks | Financials | Valuation | Insider & Ownership | News (ETFs: Bull/Bear & Risks | Fund profile | News).
 
 | Section | What it shows | Source |
 |---|---|---|
 | **Signal balance** | A rule-based bull/bear reading at the top of the brief: a half-dial gauge whose needle sweeps to the net reading, each factor's −1 to +1 score below it with its rule on hover, and sliders to re-weight factors. Framed as a summary of the evidence, not a recommendation | Computed from the sections below |
+| **At a glance** (AI summary) | 3–4 sentences under the snapshot: what the company does (from its own business description), how it's performing, and the single biggest risk, with every figure checked against the data and one automatic rewrite if any isn't found | Claude Haiku 5.5 |
+| **Valuation** (stocks) | Trailing and forward P/E next to the S&P 500's, with the premium or discount stated | Yahoo Finance |
 | **Snapshot** | Price and day change, market cap, 52-week range (with position bar), next earnings date, dividend yield | Yahoo Finance, Finnhub |
 | **Financials** (stocks) | Last 4 quarters: revenue, net income, EPS, free cash flow, gross/operating/net margins, YoY change; trailing and forward P/E; debt-to-equity | Yahoo Finance |
 | **Fund profile** (ETFs) | Expense ratio, AUM, category, top 10 holdings | Yahoo Finance |
@@ -65,6 +69,8 @@ flowchart LR
     FH & NW & OW --> FHAPI[(Finnhub API)]
     OW --> YF
     NW -->|one batched call| HAIKU[(Claude Haiku 5.5)]
+    L --> SUM[ai_summary.py<br/>at-a-glance summary]
+    SUM -->|facts + business description| HAIKU
     AI -->|facts document only| SONNET[(Claude Sonnet 5.5)]
 
     MD & FIN & TR & RK & FH & OW & NW --> AI
@@ -94,6 +100,7 @@ brief/
   ownership.py          Insider trades (SEC codes + roles), flags, institutional ownership
   news.py               Headline selection and batched sentiment scoring
   ai_analysis.py        Facts document, Claude analysis, grounding check
+  ai_summary.py         3-4 sentence summary (separate fast call, one corrective retry)
   signals.py            Signal balance: one pure, tested rule per factor, weighted net score
   symbols.py            Search universe: ~11,000 tickers + cleaned company names, name/ticker resolution
   formatting.py         Number formatting shared by UI and prompts
