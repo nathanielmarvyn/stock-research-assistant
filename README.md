@@ -17,6 +17,7 @@ _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 
 | Section | What it shows | Source |
 |---|---|---|
+| **Signal balance** | A rule-based bull/bear reading at the top of the brief: each factor scored −1 to +1 with its rule shown on hover, a net meter, and sliders to re-weight factors. Framed as a summary of the evidence, not a recommendation | Computed from the sections below |
 | **Snapshot** | Price and day change, market cap, 52-week range (with position bar), next earnings date, dividend yield | Yahoo Finance, Finnhub |
 | **Financials** (stocks) | Last 4 quarters: revenue, net income, EPS, free cash flow, gross/operating/net margins, YoY change; trailing and forward P/E; debt-to-equity | Yahoo Finance |
 | **Fund profile** (ETFs) | Expense ratio, AUM, category, top 10 holdings | Yahoo Finance |
@@ -56,6 +57,7 @@ flowchart LR
     L --> OW[ownership.py<br/>insiders, institutions]
     L --> NW[news.py<br/>headlines + sentiment]
     L --> AI[ai_analysis.py<br/>bull/bear analysis]
+    L --> SG[signals.py<br/>rule-based signal balance]
 
     MD & FIN & TR & RK --> YF[(yfinance)]
     FH & NW & OW --> FHAPI[(Finnhub API)]
@@ -90,6 +92,7 @@ brief/
   ownership.py          Insider trades (SEC codes + roles), flags, institutional ownership
   news.py               Headline selection and batched sentiment scoring
   ai_analysis.py        Facts document, Claude analysis, grounding check
+  signals.py            Signal balance: one pure, tested rule per factor, weighted net score
   formatting.py         Number formatting shared by UI and prompts
   ui/
     loaders.py          Cached loaders (Streamlit cache_data)
@@ -116,6 +119,15 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **EPS surprises are labeled by basis.** Finnhub's "actual" EPS is the adjusted figure analysts forecast and can differ from GAAP diluted EPS (JPM: $6.14 vs. $7.70), so the page says which is which.
 - **RSI uses Wilder's smoothing**, unit-tested against a hand-calculated example and cross-checked against an independent implementation.
 
+**A bull/bear scale without a black box**
+- **Rules, not a model.** Each factor (trend, relative return, growth, valuation vs. the S&P 500, analyst views, earnings record, insider activity, risk-adjusted return, downside capture, news) maps to −1..+1 by a written rule shown on hover. The same data always gives the same reading.
+- **Weights belong to the viewer.** Sliders change how much each factor counts, which makes the point an advisor would make to a client: the conclusion depends on what you prioritize.
+- **Labeled as evidence, not advice.** Zones read "mostly bullish / mixed / mostly bearish signals," and colors are navy vs. burgundy (not green vs. red) with labels, so they work for colorblind readers.
+
+**Design**
+- **"Classic research" theme** (cream, charcoal, burgundy; Lora headings over Inter) defined entirely in `.streamlit/config.toml`, with light and dark variants that follow the viewer's system setting.
+- **Chart colors were validated, not eyeballed:** the three line colors passed a palette checker for colorblind separation, normal-vision distinctness, and 3:1 contrast against each mode's background, and charts switch palettes with the theme.
+
 **AI that stays grounded**
 - **The model only sees a "facts" document** built from the fetched sections, with numbers pre-formatted (`$109.42B`, `+16.4%`) so it can't confuse units. Missing sections are listed explicitly so it says "unavailable" instead of guessing.
 - **Every figure the model writes is checked against the facts.** Anything not found verbatim is shown to the reader as unverified.
@@ -128,6 +140,7 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **Caching:** 15-minute cache per section, and failures are never cached, so a rate limit retries on the next lookup.
 - **Finnhub client:** retries with backoff on HTTP 429, and gives clear messages for bad keys, paid-only endpoints, and timeouts.
 - **Graceful degradation:** if Claude is down, the news section still shows headlines with source summaries. If Finnhub is down, the price target still shows.
+- **Interactive without waste:** the signal-balance sliders run inside a Streamlit fragment, so moving one re-weights cached data instantly instead of rerunning the page or calling any API.
 - **Cost controls:** one batched Haiku call for all headlines at `low` effort; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Measured usage per new brief: Haiku sentiment ≈ 2K input / 0.7K output tokens, Sonnet analysis ≈ 2–3K input / ~1K output tokens (about 1.3–1.7 cents); cached repeats are free.
 
 ---
@@ -219,12 +232,13 @@ Non-secret settings live in `brief/config.py`: Claude models, token limits and e
 
 ## Roadmap
 
-**v2 (in progress)**
+**v2 (complete)**
 - ✅ GitHub Actions CI on every push
 - ✅ Risk profile (volatility, beta, drawdown, Sharpe, capture ratios)
 - ✅ Earnings track record
 - ✅ Ownership and insider activity with rule-based flags
-- "Classic research" visual theme and an interactive, rule-based signal-balance scale
+- ✅ "Classic research" theme with light and dark modes
+- ✅ Interactive, rule-based signal-balance scale
 
 **Later**
 - Client-ready PDF export of the brief

@@ -23,6 +23,7 @@ from brief import ownership as own
 from brief.news import NewsBrief
 from brief.ownership import InsiderActivity, OwnershipActivity, OwnershipBreakdown
 from brief.risk import Drawdown, RiskProfile, risk_summary
+from brief.signals import Signal, balance_label, net_score
 from brief.trends import PriceTrends
 from brief.ui import charts
 
@@ -45,6 +46,14 @@ def md(text: str) -> str:
 def bullets(points: list[str]) -> str:
     """Markdown bullet list with '$' escaped."""
     return md("\n".join(f"- {p}" for p in points))
+
+
+def palette() -> charts.Palette:
+    """Chart colors for the viewer's current light/dark theme."""
+    try:
+        return charts.DARK if st.context.theme.type == "dark" else charts.LIGHT
+    except Exception:  # outside a running app (tests, scripts)
+        return charts.LIGHT
 
 
 def as_of_text(result: SectionResult, date_only: bool = False) -> str:
@@ -77,6 +86,67 @@ def range_position(low: float | None, high: float | None, price: float | None) -
     return min(max((price - low) / (high - low), 0.0), 1.0)
 
 
+# ---------------------------------------------------------------- signal balance
+
+MIN_SIGNALS = 3
+
+
+def _reset_weights(keys: list[str]) -> None:
+    for key in keys:
+        st.session_state[f"weight_{key}"] = 1.0
+        st.session_state.pop(f"slider_{key}", None)  # sliders re-read the stored weight
+
+
+def _store_weight(key: str) -> None:
+    """Copy a slider's value into a plain session key that outlives the slider widget."""
+    st.session_state[f"weight_{key}"] = st.session_state[f"slider_{key}"]
+
+
+@st.fragment
+def render_signal_balance(signals: list[Signal]) -> None:
+    """Rule-based bull/bear balance with adjustable weights. Reruns on its own when a slider moves."""
+    st.subheader("Signal balance", anchor=False)
+    st.caption(
+        "A rule-based summary of the evidence in this brief, not a rating or recommendation. "
+        "Each factor scores from −1 (bearish) to +1 (bullish); hover a bar to see its rule."
+    )
+    if len(signals) < MIN_SIGNALS:
+        st.info("Not enough data loaded to summarize the signals.", icon=":material/info:")
+        return
+
+    for s in signals:
+        st.session_state.setdefault(f"weight_{s.key}", 1.0)
+    weights = {s.key: float(st.session_state[f"weight_{s.key}"]) for s in signals}
+    net = net_score(signals, weights)
+    if net is None:
+        st.info("All factors are weighted at zero. Raise at least one weight.", icon=":material/info:")
+    else:
+        bulls = sum(1 for s in signals if s.score > 0 and weights[s.key] > 0)
+        bears = sum(1 for s in signals if s.score < 0 and weights[s.key] > 0)
+        neutral = sum(1 for s in signals if weights[s.key] > 0) - bulls - bears
+        st.markdown(
+            f"**{balance_label(net)}** · net {net:+.2f} · {bulls} bullish · {bears} bearish · {neutral} neutral"
+        )
+        st.plotly_chart(charts.balance_meter(net, palette()), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(charts.signal_bars(signals, weights, palette()), width="stretch", config={"displayModeBar": False})
+
+    # A keyed toggle (not an expander): its state survives the fragment rerun each slider
+    # move triggers, so the panel stays open while the viewer adjusts weights.
+    if st.toggle("Adjust weights", key="show_signal_weights"):
+        with st.container(border=True):
+            st.caption("Set how much each factor counts. 0 leaves it out; 3x triples its influence.")
+            cols = st.columns(3)
+            for i, s in enumerate(signals):
+                # Weights live in "weight_*" keys, not the slider's own key: Streamlit drops widget
+                # state when the panel is closed, which would otherwise reset the weights.
+                cols[i % 3].slider(
+                    s.name, 0.0, 3.0, value=weights[s.key], step=0.5, key=f"slider_{s.key}", format="%.1fx",
+                    help=s.rule, on_change=_store_weight, args=(s.key,),
+                )
+            st.button("Reset to equal weights", on_click=_reset_weights, args=([s.key for s in signals],),
+                      icon=":material/restart_alt:")
+
+
 # ---------------------------------------------------------------- 1. snapshot
 
 
@@ -98,7 +168,9 @@ def render_snapshot(
     if not section("Snapshot", snapshot):
         return
     s = snapshot.data
-    cols = st.columns(4)
+    # Two rows of two (not one row of four) so values aren't truncated on narrower screens.
+    top, bottom = st.columns(2), st.columns(2)
+    cols = [top[0], top[1], bottom[0], bottom[1]]
     cols[0].metric(
         "Price",
         fmt.money(s.price),
@@ -151,7 +223,7 @@ def render_etf_profile(etf: SectionResult[EtfProfile]) -> None:
         return
     top = e.top_holdings[:10]
     st.markdown(f"**Top {len(top)} holdings** ({sum(h.weight for h in top):.1%} of assets)")
-    st.plotly_chart(charts.holdings_chart(top), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(charts.holdings_chart(top, palette()), width="stretch", config={"displayModeBar": False})
 
 
 # ---------------------------------------------------------------- 2. financials
@@ -209,7 +281,7 @@ def render_trends(trends: SectionResult[PriceTrends], symbol: str) -> None:
     if not section("Price trends", trends):
         return
     t = trends.data
-    st.plotly_chart(charts.price_chart(t.chart, symbol), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(charts.price_chart(t.chart, symbol, palette()), width="stretch", config={"displayModeBar": False})
 
     is_benchmark = symbol == t.benchmark
     perf = pd.DataFrame(
@@ -319,7 +391,7 @@ def render_risk(risk: SectionResult[RiskProfile], symbol: str) -> None:
     # st.table (not st.dataframe) so the explanations wrap instead of being cut off.
     st.table(risk_table(p, symbol).set_index("Metric"))
     st.markdown("**Drawdown from previous high** (2Y)")
-    st.plotly_chart(charts.drawdown_chart(p.underwater), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(charts.drawdown_chart(p.underwater, palette()), width="stretch", config={"displayModeBar": False})
     st.caption(
         "Past volatility and drawdowns describe history, not future risk. Beta and correlation use 2 years "
         "of daily returns; capture ratios use complete months."
@@ -348,7 +420,7 @@ def render_wall_street(view: SectionResult[WallStreetView], price: float | None)
                 help="Weighted average of ratings on a 1 (Strong Buy) to 5 (Strong Sell) scale. Source: Finnhub.",
                 border=True,
             )
-            st.plotly_chart(charts.ratings_chart(c), width="stretch", config={"displayModeBar": False})
+            st.plotly_chart(charts.ratings_chart(c, palette()), width="stretch", config={"displayModeBar": False})
             st.caption(f"{c.total} analysts · score {c.score:.2f} on a 1 (Strong Buy) to 5 (Strong Sell) scale")
         else:
             st.info("Analyst ratings aren't available.")
@@ -397,7 +469,7 @@ def render_earnings_history(history: SectionResult[EarningsHistory]) -> None:
     st.markdown(h.summary())
     # Stacked (not side by side) so all six columns stay readable on narrow screens.
     st.table(earnings_table(h).set_index("Quarter ended"))
-    st.plotly_chart(charts.earnings_chart(h), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(charts.earnings_chart(h, palette()), width="stretch", config={"displayModeBar": False})
     st.caption(f"Beat or miss means a surprise of at least ±1%; smaller differences count as in line. {EPS_BASIS_NOTE}")
 
 

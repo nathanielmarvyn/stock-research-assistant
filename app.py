@@ -10,8 +10,9 @@ import logging
 import streamlit as st
 
 from brief.config import get_settings
-from brief.market_data import AssetType, TickerValidationError, normalize_symbol
+from brief.market_data import AssetType, TickerValidationError, first_number, normalize_symbol
 from brief.models import DataUnavailableError
+from brief.signals import build_signals
 from brief.ui import loaders
 from brief.ui import sections as ui
 
@@ -73,6 +74,14 @@ def ai_allowance(symbol: str) -> str | None:
     )
 
 
+def market_pe() -> float | None:
+    """The benchmark's trailing P/E, for the valuation signal."""
+    try:
+        return first_number(loaders.load_ticker(get_settings().benchmark_ticker)[1], "trailingPE")
+    except (TickerValidationError, DataUnavailableError):
+        return None
+
+
 def brief(raw: str) -> None:
     """Render the full brief for one ticker. Each section fails independently."""
     try:
@@ -93,6 +102,11 @@ def brief(raw: str) -> None:
         earnings = None if is_etf else loaders.load_earnings(symbol)
     ui.render_snapshot(snapshot, earnings, etf)
 
+    # Reserve the "at a glance" slot near the top; it's filled once every section has loaded.
+    st.divider()
+    balance_slot = st.container()
+
+    financials = wall_street = earnings_history = ownership = None
     st.divider()
     if is_etf:
         ui.render_etf_profile(etf)
@@ -131,6 +145,20 @@ def brief(raw: str) -> None:
     with st.spinner("Loading news and scoring sentiment…"):
         news = loaders.load_news(symbol)
     ui.render_news(news)
+
+    with balance_slot:
+        signals = build_signals(
+            ticker,
+            trends=trends,
+            financials=financials,
+            risk=risk,
+            wall_street=wall_street,
+            earnings_history=earnings_history,
+            ownership=ownership,
+            news=news,
+            market_pe=market_pe(),
+        )
+        ui.render_signal_balance(signals)
 
     st.divider()
     limit_message = ai_allowance(symbol)

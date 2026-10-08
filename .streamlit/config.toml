@@ -1,6 +1,52 @@
+# "Classic research" theme: cream paper, charcoal ink, burgundy accents,
+# serif headings (Lora) over a clean sans body (Inter). Light and dark variants follow the
+# viewer's system setting. Chart colors live in brief/ui/charts.py and were
+# checked for colorblind separation and contrast against these surfaces.
+
 [theme]
-base = "light"
-primaryColor = "#1f4e79"
+# Google Fonts as "<family>:<css url>". Two rules learned the hard way:
+# no fallback list (Streamlit appends it to the URL), and no family names ending
+# in a digit ("Source Sans 3" is emitted unquoted, which is invalid CSS).
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+headingFont = "Lora:https://fonts.googleapis.com/css2?family=Lora:wght@500;600&display=swap"
+headingFontWeights = 600
+baseRadius = "0.35rem"
+showSidebarBorder = true
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#7B1E2B"          # burgundy
+backgroundColor = "#FBF8F2"       # cream paper
+secondaryBackgroundColor = "#F2ECE0"
+textColor = "#2B2A28"             # charcoal
+linkColor = "#7B1E2B"
+borderColor = "#DDD5C5"
+dataframeBorderColor = "#E6DFD1"
+dataframeHeaderBackgroundColor = "#EFE8DA"
+greenColor = "#2E6B4F"
+redColor = "#A8323F"
+blueColor = "#2E6BB0"
+yellowColor = "#B07A1E"
+
+[theme.light.sidebar]
+backgroundColor = "#F2ECE0"
+
+[theme.dark]
+primaryColor = "#DB6A8A"          # rose (burgundy lifted for contrast on dark)
+backgroundColor = "#1C1A17"       # warm charcoal
+secondaryBackgroundColor = "#26231F"
+textColor = "#EDE6D6"
+linkColor = "#E58FA4"
+borderColor = "#3A352E"
+dataframeBorderColor = "#3A352E"
+dataframeHeaderBackgroundColor = "#2B2722"
+greenColor = "#5FAE86"
+redColor = "#DB6A8A"
+blueColor = "#4F8FD6"
+yellowColor = "#B88A1E"
+
+[theme.dark.sidebar]
+backgroundColor = "#221F1B"
 
 [server]
 headless = true
