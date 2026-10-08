@@ -17,7 +17,14 @@ import streamlit as st
 from brief.ai_analysis import AnalysisResult, get_ai_analysis
 from brief.config import get_settings
 from brief.financials import Financials, get_financials
-from brief.finnhub_client import EarningsEvent, WallStreetView, get_next_earnings, get_wall_street_view
+from brief.finnhub_client import (
+    EarningsEvent,
+    EarningsHistory,
+    WallStreetView,
+    get_earnings_history,
+    get_next_earnings,
+    get_wall_street_view,
+)
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo, get_etf_profile, get_snapshot, validate_ticker
 from brief.models import DataUnavailableError, SectionResult
 from brief.news import NewsBrief, get_news
@@ -137,6 +144,12 @@ def load_earnings(symbol: str) -> SectionResult[EarningsEvent]:
 
 
 @cache_successes
+def load_earnings_history(symbol: str) -> SectionResult[EarningsHistory]:
+    """Last four quarters of EPS vs. consensus."""
+    return get_earnings_history(symbol)
+
+
+@cache_successes
 def load_wall_street(symbol: str) -> SectionResult[WallStreetView]:
     """Analyst consensus and price target."""
     return get_wall_street_view(symbol, load_ticker(symbol)[1])
@@ -163,5 +176,6 @@ def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
         risk=load_risk(symbol),
         wall_street=None if is_etf else load_wall_street(symbol),
         earnings=None if is_etf else load_earnings(symbol),
+        earnings_history=None if is_etf else load_earnings_history(symbol),
         news=load_news(symbol),
     )

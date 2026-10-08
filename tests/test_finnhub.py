@@ -164,3 +164,44 @@ def test_wall_street_fails_with_no_coverage(spy_info: dict) -> None:
 def test_earnings_section_for_etf_fails_softly() -> None:
     result = fh.get_next_earnings("SPY", client=client(FakeResponse(200, {"earningsCalendar": []})))
     assert not result.ok and result.error == "No upcoming earnings date announced."
+
+
+# ---------------------------------------------------------------- earnings track record
+
+
+@pytest.mark.parametrize(
+    "actual, estimate, expected",
+    [(2.84, 2.7257, (2.84 - 2.7257) / 2.7257), (-0.5, -1.0, 0.5), (1.0, 0, None), (None, 1.0, None)],
+)
+def test_surprise_fraction(actual, estimate, expected) -> None:
+    assert fh.surprise_fraction(actual, estimate) == (pytest.approx(expected) if expected is not None else None)
+
+
+@pytest.mark.parametrize("surprise, outcome", [(0.042, "beat"), (0.01, "beat"), (-0.0089, "in line"), (-0.01, "miss"), (None, None)])
+def test_outcome_band(surprise, outcome) -> None:
+    q = fh.EarningsResult(date(2026, 6, 30), 3, 2026, 1.0, 1.0, surprise)
+    assert q.outcome == outcome
+
+
+def test_earnings_history_from_captured_aapl() -> None:
+    h = fh.parse_earnings_history(load_json("finnhub_earnings_history_aapl.json"))
+    assert len(h.quarters) == 4
+    assert h.quarters[0].period_end == date(2026, 6, 30)  # newest first
+    assert h.quarters[0].outcome == "in line"  # -0.9% is within the ±1% band
+    assert h.count("beat") == 3
+    assert h.summary().startswith("Beat estimates in 3 of the last 4 quarters (1 in line), average surprise +")
+
+
+def test_earnings_summary_with_miss() -> None:
+    qs = [fh.EarningsResult(date(2026, 3, 31), 1, 2026, 1.0, 0.9, -0.1), fh.EarningsResult(date(2025, 12, 31), 4, 2025, 1.0, 1.1, 0.1)]
+    assert fh.EarningsHistory(qs).summary() == "Beat estimates in 1 of the last 2 quarters (1 missed), average surprise +0.0%."
+
+
+def test_earnings_history_empty_for_etf() -> None:
+    result = fh.get_earnings_history("SPY", client=client(FakeResponse(200, [])))
+    assert not result.ok and result.error == "No earnings history available."
+
+
+def test_earnings_summary_all_beats() -> None:
+    qs = [fh.EarningsResult(date(2026, m, 28), 1, 2026, 1.0, 1.05, 0.05) for m in (3, 6)]
+    assert fh.EarningsHistory(qs).summary() == "Beat estimates in all of the last 2 quarters, average surprise +5.0%."

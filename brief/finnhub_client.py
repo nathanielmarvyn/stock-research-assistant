@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -104,6 +104,11 @@ class FinnhubClient:
         data = self.get("/stock/recommendation", symbol=symbol)
         return data if isinstance(data, list) else []
 
+    def earnings_history(self, symbol: str) -> list[dict[str, Any]]:
+        """Last four reported quarters: actual vs. estimated EPS."""
+        data = self.get("/stock/earnings", symbol=symbol)
+        return data if isinstance(data, list) else []
+
     def company_news(self, symbol: str, start: date, end: date) -> list[dict[str, Any]]:
         """Company news articles published between two dates."""
         data = self.get("/company-news", symbol=symbol, **{"from": start.isoformat(), "to": end.isoformat()})
@@ -160,6 +165,113 @@ def get_next_earnings(
     if event is None:
         raise DataUnavailableError("No upcoming earnings date announced.")
     return SectionResult.success(event, SOURCE)
+
+
+# ---------------------------------------------------------------- earnings track record
+
+# A surprise within ±1% of the estimate counts as in line rather than a beat or miss.
+IN_LINE_BAND = 0.01
+EPS_BASIS_NOTE = (
+    "EPS here is on the basis analysts estimate (often excluding one-time items), so it can "
+    "differ from the GAAP diluted EPS in the financials table."
+)
+
+
+@dataclass(frozen=True)
+class EarningsResult:
+    """One reported quarter vs. the consensus estimate."""
+
+    period_end: date
+    fiscal_quarter: int | None
+    fiscal_year: int | None
+    estimate: float | None
+    actual: float | None
+    surprise_pct: float | None  # fraction, e.g. 0.042 = beat by 4.2%
+
+    @property
+    def outcome(self) -> str | None:
+        """'beat', 'miss', or 'in line' (within ±1%)."""
+        if self.surprise_pct is None:
+            return None
+        if self.surprise_pct >= IN_LINE_BAND:
+            return "beat"
+        if self.surprise_pct <= -IN_LINE_BAND:
+            return "miss"
+        return "in line"
+
+
+@dataclass(frozen=True)
+class EarningsHistory:
+    """Earnings track record section: recent quarters, newest first."""
+
+    quarters: list[EarningsResult]
+
+    def count(self, outcome: str) -> int:
+        """Number of quarters with this outcome."""
+        return sum(1 for q in self.quarters if q.outcome == outcome)
+
+    @property
+    def average_surprise(self) -> float | None:
+        """Mean surprise across quarters that have one."""
+        values = [q.surprise_pct for q in self.quarters if q.surprise_pct is not None]
+        return sum(values) / len(values) if values else None
+
+    def summary(self) -> str:
+        """'Beat estimates in 3 of the last 4 quarters (1 in line), average surprise +1.7%.'"""
+        n, beats = len(self.quarters), self.count("beat")
+        how_many = "all" if beats == n and n > 1 else str(beats)
+        parts = [f"Beat estimates in {how_many} of the last {n} quarter{'s' if n != 1 else ''}"]
+        extras = [f"{self.count(o)} {o if o != 'miss' else 'missed'}" for o in ("in line", "miss") if self.count(o)]
+        if extras:
+            parts[0] += f" ({', '.join(extras)})"
+        if (avg := self.average_surprise) is not None:
+            parts.append(f"average surprise {avg:+.1%}")
+        return ", ".join(parts) + "."
+
+
+def surprise_fraction(actual: float | None, estimate: float | None) -> float | None:
+    """(actual - estimate) / |estimate|; None if either is missing or the estimate is 0."""
+    if actual is None or estimate is None or estimate == 0:
+        return None
+    return (actual - estimate) / abs(estimate)
+
+
+def parse_earnings_history(rows: list[dict[str, Any]]) -> EarningsHistory:
+    """Finnhub /stock/earnings rows -> EarningsHistory, newest first.
+
+    The surprise is recomputed from actual and estimate rather than trusting
+    Finnhub's percent field, so the units are certain.
+    """
+    quarters = []
+    for row in rows:
+        try:
+            period = date.fromisoformat(row["period"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        actual, estimate = first_number(row, "actual"), first_number(row, "estimate")
+        quarters.append(
+            EarningsResult(
+                period_end=period,
+                fiscal_quarter=row.get("quarter"),
+                fiscal_year=row.get("year"),
+                estimate=estimate,
+                actual=actual,
+                surprise_pct=surprise_fraction(actual, estimate),
+            )
+        )
+    return EarningsHistory(sorted(quarters, key=lambda q: q.period_end, reverse=True))
+
+
+@safe_section(SOURCE)
+def get_earnings_history(symbol: str, client: FinnhubClient | None = None) -> SectionResult[EarningsHistory]:
+    """Last four reported quarters vs. consensus. Fails softly for ETFs and uncovered stocks."""
+    history = parse_earnings_history((client or FinnhubClient()).earnings_history(symbol))
+    if not history.quarters:
+        raise DataUnavailableError("No earnings history available.")
+    latest = history.quarters[0].period_end
+    return SectionResult.success(
+        history, SOURCE, as_of=datetime(latest.year, latest.month, latest.day, tzinfo=timezone.utc)
+    )
 
 
 # ---------------------------------------------------------------- Wall Street view

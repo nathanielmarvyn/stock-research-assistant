@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from brief.finnhub_client import AnalystConsensus
+from brief.finnhub_client import AnalystConsensus, EarningsHistory
 from brief.market_data import Holding
 
 PRICE, SMA50, SMA200 = "#2a78d6", "#eb6834", "#1baf7a"  # categorical slots 1-3
@@ -99,6 +99,34 @@ def drawdown_chart(underwater: pd.DataFrame) -> go.Figure:
         )
     _base_layout(fig, height=240)
     fig.update_yaxes(tickformat=".0%", rangemode="tozero")
+    return fig
+
+
+def earnings_chart(history: EarningsHistory) -> go.Figure:
+    """Estimate (hollow) vs. actual (filled) EPS per quarter, oldest to newest."""
+    quarters = list(reversed(history.quarters))
+    labels = [f"{q.period_end:%b %Y}" for q in quarters]
+    outcome_color = {"beat": RATING_COLORS["Strong Buy"], "miss": RATING_COLORS["Strong Sell"], "in line": VOLUME}
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=labels, y=[q.estimate for q in quarters], name="Estimate", mode="markers",
+            marker=dict(size=12, symbol="circle-open", color=VOLUME, line=dict(width=2)),
+            hovertemplate="Estimate $%{y:.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=labels, y=[q.actual for q in quarters], name="Actual", mode="markers",
+            marker=dict(size=12, color=[outcome_color.get(q.outcome or "", VOLUME) for q in quarters],
+                        line=dict(width=2, color="rgba(255,255,255,0.9)")),
+            customdata=[(q.outcome or "—").capitalize() for q in quarters],
+            hovertemplate="Actual $%{y:.2f} · %{customdata}<extra></extra>",
+        )
+    )
+    _base_layout(fig, height=220)
+    fig.update_layout(hovermode="closest")
+    fig.update_yaxes(tickprefix="$")
     return fig
 
 

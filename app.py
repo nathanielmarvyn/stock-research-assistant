@@ -117,6 +117,11 @@ def brief(raw: str) -> None:
             wall_street = loaders.load_wall_street(symbol)
         ui.render_wall_street(wall_street, snapshot.data.price if snapshot.ok else None)
 
+        st.divider()
+        with st.spinner("Loading earnings history…"):
+            earnings_history = loaders.load_earnings_history(symbol)
+        ui.render_earnings_history(earnings_history)
+
     st.divider()
     with st.spinner("Loading news and scoring sentiment…"):
         news = loaders.load_news(symbol)

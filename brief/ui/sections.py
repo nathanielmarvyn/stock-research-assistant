@@ -16,7 +16,7 @@ import streamlit as st
 from brief import formatting as fmt
 from brief.ai_analysis import AnalysisResult
 from brief.financials import Financials
-from brief.finnhub_client import EarningsEvent, WallStreetView
+from brief.finnhub_client import EPS_BASIS_NOTE, EarningsEvent, EarningsHistory, WallStreetView
 from brief.market_data import EtfProfile, Snapshot, TickerInfo
 from brief.models import SectionResult
 from brief.news import NewsBrief
@@ -362,6 +362,41 @@ def render_wall_street(view: SectionResult[WallStreetView], price: float | None)
             st.caption(md(f"Range {fmt.money(p.low)} – {fmt.money(p.high)} · {p.analyst_count or '—'} analysts"))
         else:
             st.info("No price target coverage.")
+
+
+# ---------------------------------------------------------------- 4b. earnings track record
+
+OUTCOME_LABELS = {  # icon + word, never color alone
+    "beat": "▲ Beat",
+    "miss": "▼ Miss",
+    "in line": "● In line",
+}
+
+
+def earnings_table(h: EarningsHistory) -> pd.DataFrame:
+    """Quarter rows, newest first: estimate, actual, surprise, outcome."""
+    return pd.DataFrame(
+        {
+            "Quarter ended": [f"{q.period_end:%b} {q.period_end.day}, {q.period_end.year}" for q in h.quarters],
+            "Fiscal qtr": [f"Q{q.fiscal_quarter} {q.fiscal_year}" if q.fiscal_quarter else "—" for q in h.quarters],
+            "EPS estimate": [fmt.money(q.estimate) for q in h.quarters],
+            "EPS actual": [fmt.money(q.actual) for q in h.quarters],
+            "Surprise": [fmt.pct(q.surprise_pct, 1, signed=True) for q in h.quarters],
+            "Result": [OUTCOME_LABELS.get(q.outcome or "", "—") for q in h.quarters],
+        }
+    )
+
+
+def render_earnings_history(history: SectionResult[EarningsHistory]) -> None:
+    """Section 4b: how reported EPS compared with expectations."""
+    if not section("Earnings track record", history, f"latest quarter ended {as_of_text(history, date_only=True)}"):
+        return
+    h = history.data
+    st.markdown(h.summary())
+    # Stacked (not side by side) so all six columns stay readable on narrow screens.
+    st.table(earnings_table(h).set_index("Quarter ended"))
+    st.plotly_chart(charts.earnings_chart(h), width="stretch", config={"displayModeBar": False})
+    st.caption(f"Beat or miss means a surprise of at least ±1%; smaller differences count as in line. {EPS_BASIS_NOTE}")
 
 
 # ---------------------------------------------------------------- 5. news
