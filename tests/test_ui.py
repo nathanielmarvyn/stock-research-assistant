@@ -83,3 +83,40 @@ def test_ratings_chart_has_all_five_buckets() -> None:
 def test_holdings_chart_largest_on_top() -> None:
     fig = charts.holdings_chart([Holding("NVDA", "Nvidia", 0.08), Holding("AAPL", "Apple", 0.07)])
     assert list(fig.data[0].y) == ["AAPL", "NVDA"]  # plotly draws bottom-up
+
+
+def _risk_profile(with_benchmark: bool = True):
+    import math
+
+    from brief.risk import build_risk_profile
+
+    idx = pd.bdate_range("2024-10-01", periods=504, tz="America/New_York")
+    asset = pd.DataFrame({"Close": [100 * (1 + 0.02 * math.sin(i / 5)) * 1.0006**i for i in range(504)]}, index=idx)
+    bench = pd.DataFrame({"Close": [100 * (1 + 0.01 * math.sin(i / 5)) * 1.0003**i for i in range(504)]}, index=idx)
+    return build_risk_profile(asset, bench if with_benchmark else None, "SPY", 0.0405, "XYZ")
+
+
+def test_risk_table_with_benchmark() -> None:
+    table = ui.risk_table(_risk_profile(), "XYZ")
+    assert list(table.columns) == ["Metric", "XYZ", "SPY", "What it means"]
+    assert {"Beta (2Y)", "Down capture"} <= set(table["Metric"])
+    assert "4.05% T-bill" in table.loc[table["Metric"] == "Sharpe ratio (1Y)", "What it means"].iloc[0]
+
+
+def test_risk_table_without_benchmark_drops_relative_rows() -> None:
+    table = ui.risk_table(_risk_profile(with_benchmark=False), "XYZ")
+    assert list(table.columns) == ["Metric", "XYZ", "What it means"]
+    assert "Beta (2Y)" not in set(table["Metric"])
+
+
+def test_drawdown_detail() -> None:
+    from brief.risk import Drawdown
+
+    d = Drawdown(-0.334, pd.Timestamp("2024-12-26"), pd.Timestamp("2025-04-08"), None)
+    assert ui.drawdown_detail(d) == "Worst fall from a high: Dec 26, 2024 to Apr 8, 2025, not yet recovered."
+
+
+def test_drawdown_chart_fills_ticker_only() -> None:
+    fig = charts.drawdown_chart(_risk_profile().underwater)
+    assert [t.name for t in fig.data] == ["XYZ", "SPY"]
+    assert fig.data[0].fill == "tozeroy" and fig.data[1].fill is None

@@ -81,6 +81,27 @@ def price_chart(chart: pd.DataFrame, symbol: str) -> go.Figure:
     return fig
 
 
+def drawdown_chart(underwater: pd.DataFrame) -> go.Figure:
+    """Percent below the running high over time; the ticker is filled, the benchmark a gray line."""
+    fig = go.Figure()
+    for i, column in enumerate(underwater.columns):
+        is_ticker = i == 0
+        fig.add_trace(
+            go.Scatter(
+                x=underwater.index,
+                y=underwater[column],
+                name=column,
+                line=dict(color=PRICE if is_ticker else VOLUME, width=1.5 if is_ticker else 1.25),
+                fill="tozeroy" if is_ticker else None,
+                fillcolor="rgba(42,120,214,0.12)" if is_ticker else None,
+                hovertemplate="%{y:.1%} below high",
+            )
+        )
+    _base_layout(fig, height=240)
+    fig.update_yaxes(tickformat=".0%", rangemode="tozero")
+    return fig
+
+
 def ratings_chart(consensus: AnalystConsensus) -> go.Figure:
     """One horizontal stacked bar of analyst ratings, Strong Buy to Strong Sell."""
     counts = {

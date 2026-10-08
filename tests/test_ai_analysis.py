@@ -153,3 +153,21 @@ def test_benchmark_is_not_compared_with_itself(spy_info) -> None:
     facts = ai.build_facts(SPY, snapshot=ok(parse_snapshot(spy_info)), trends=trends)
     assert "performance_vs_benchmark" not in facts["price_trends"]
     assert "excess" not in str(facts["price_trends"]["performance"])
+
+
+def test_risk_facts_included(aapl_sections) -> None:
+    import math
+
+    import pandas as pd
+    from brief.risk import build_risk_profile
+
+    idx = pd.bdate_range("2024-10-01", periods=504, tz="America/New_York")
+    a = pd.DataFrame({"Close": [100 * (1 + 0.02 * math.sin(i / 5)) * 1.0006**i for i in range(504)]}, index=idx)
+    b = pd.DataFrame({"Close": [100 * (1 + 0.01 * math.sin(i / 5)) * 1.0003**i for i in range(504)]}, index=idx)
+    risk = ok(build_risk_profile(a, b, "SPY", 0.0405, "AAPL"))
+    facts = ai.build_facts(AAPL, risk=risk, **aapl_sections)
+    rp = facts["risk_profile"]
+    assert rp["risk_free_rate_13_week_tbill"] == "4.05%"
+    assert {"beta_2y", "down_capture", "max_drawdown_2y"} <= rp["AAPL"].keys()
+    assert "beta_2y" not in rp["SPY"] or rp["SPY"]["beta_2y"] == "1.00"
+    assert "risk_profile" not in facts["unavailable_sections"]

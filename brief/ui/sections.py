@@ -20,6 +20,7 @@ from brief.finnhub_client import EarningsEvent, WallStreetView
 from brief.market_data import EtfProfile, Snapshot, TickerInfo
 from brief.models import SectionResult
 from brief.news import NewsBrief
+from brief.risk import Drawdown, RiskProfile, risk_summary
 from brief.trends import PriceTrends
 from brief.ui import charts
 
@@ -247,6 +248,80 @@ def render_trends(trends: SectionResult[PriceTrends], symbol: str) -> None:
             if t.volume_from_prior_session
             else "Latest session's volume vs. the average of the 30 sessions before it.",
         )
+
+
+# ---------------------------------------------------------------- 3b. risk profile
+
+
+def short_date(ts: pd.Timestamp | None) -> str:
+    """'Apr 8, 2025' from a timestamp."""
+    return "—" if ts is None else f"{ts:%b} {ts.day}, {ts.year}"
+
+
+def drawdown_text(d: Drawdown | None) -> str:
+    """'-33.4%' depth for the table cell."""
+    return fmt.MISSING if d is None else fmt.pct(d.depth, 1)
+
+
+def drawdown_detail(d: Drawdown | None) -> str:
+    """When the worst fall happened and whether it has recovered."""
+    if d is None or d.depth == 0:
+        return "No decline from a high in this window."
+    recovery = f"recovered by {short_date(d.recovery_date)}" if d.recovery_date is not None else "not yet recovered"
+    return f"Worst fall from a high: {short_date(d.peak_date)} to {short_date(d.trough_date)}, {recovery}."
+
+
+def risk_table(p: RiskProfile, symbol: str) -> pd.DataFrame:
+    """Metric rows with the ticker, the benchmark (if different), and a plain-English meaning."""
+    t, b, bench = p.ticker, p.benchmark, p.benchmark_symbol
+    rf = f" ({fmt.pct(p.risk_free_rate, 2)} T-bill)" if p.risk_free_rate is not None else ""
+    beta_meaning = (
+        f"Tends to move about {t.beta_2y:.2f}% when the market moves 1%." if t.beta_2y is not None
+        else "Sensitivity to market moves (1.00 = moves with the market)."
+    )
+    rows: list[tuple[str, str, str, str]] = [
+        ("Volatility (1Y, annualized)", fmt.pct(t.volatility_1y), fmt.pct(b.volatility_1y) if b else "",
+         "Typical size of price swings over a year."),
+        ("Total return (1Y)", fmt.pct(t.return_1y, signed=True), fmt.pct(b.return_1y, signed=True) if b else "",
+         "Price change plus dividends."),
+        ("Sharpe ratio (1Y)", fmt.num(t.sharpe_1y), fmt.num(b.sharpe_1y) if b else "",
+         f"Return above the risk-free rate{rf}, per unit of volatility. Higher is better."),
+        ("Max drawdown (1Y)", drawdown_text(t.drawdown_1y), drawdown_text(b.drawdown_1y) if b else "",
+         drawdown_detail(t.drawdown_1y)),
+        ("Max drawdown (2Y)", drawdown_text(t.drawdown_2y), drawdown_text(b.drawdown_2y) if b else "",
+         drawdown_detail(t.drawdown_2y)),
+    ]
+    if b is not None:
+        rows += [
+            ("Beta (2Y)", fmt.num(t.beta_2y), "1.00", beta_meaning),
+            ("Correlation (2Y)", fmt.num(t.correlation_2y), "1.00",
+             "1.00 = moves in lockstep with the market; lower adds more diversification."),
+            ("Up capture", fmt.pct(t.up_capture, 0), "100%",
+             f"Share of the market's gains captured in its up months ({p.capture_months} months)."),
+            ("Down capture", fmt.pct(t.down_capture, 0), "100%",
+             "Share of the market's losses taken in its down months. Lower is better."),
+        ]
+    columns = ["Metric", symbol] + ([bench] if b is not None else []) + ["What it means"]
+    return pd.DataFrame(
+        [(m, v, bv, why) if b is not None else (m, v, why) for m, v, bv, why in rows], columns=columns
+    )
+
+
+def render_risk(risk: SectionResult[RiskProfile], symbol: str) -> None:
+    """Section 3b: how much risk the price history shows, next to the market's."""
+    if not section("Risk profile", risk):
+        return
+    p = risk.data
+    if summary := risk_summary(p, symbol):
+        st.markdown(md(summary))
+    # st.table (not st.dataframe) so the explanations wrap instead of being cut off.
+    st.table(risk_table(p, symbol).set_index("Metric"))
+    st.markdown("**Drawdown from previous high** (2Y)")
+    st.plotly_chart(charts.drawdown_chart(p.underwater), width="stretch", config={"displayModeBar": False})
+    st.caption(
+        "Past volatility and drawdowns describe history, not future risk. Beta and correlation use 2 years "
+        "of daily returns; capture ratios use complete months."
+    )
 
 
 # ---------------------------------------------------------------- 4. Wall Street

@@ -27,6 +27,7 @@ from brief.finnhub_client import EarningsEvent, WallStreetView
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo
 from brief.models import DataUnavailableError, SectionResult, safe_section
 from brief.news import MessagesClient, NewsBrief, anthropic_client, describe_api_error
+from brief.risk import Drawdown, RiskMetrics, RiskProfile
 from brief.trends import PriceTrends
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,7 @@ def build_facts(
     earnings: SectionResult[EarningsEvent] | None = None,
     news: SectionResult[NewsBrief] | None = None,
     etf: SectionResult[EtfProfile] | None = None,
+    risk: SectionResult[RiskProfile] | None = None,
 ) -> dict[str, Any]:
     """Collect every available section into one dict of pre-formatted values.
 
@@ -178,6 +180,17 @@ def build_facts(
     else:
         unavailable.append("price_trends")
 
+    if r := _data(risk):
+        facts["risk_profile"] = {
+            "risk_free_rate_13_week_tbill": fmt.pct(r.risk_free_rate, 2),
+            ticker.symbol: _risk_facts(r.ticker),
+        }
+        if r.benchmark is not None:
+            facts["risk_profile"][r.benchmark_symbol] = _risk_facts(r.benchmark)
+            facts["risk_profile"]["capture_ratio_months"] = str(r.capture_months)
+    else:
+        unavailable.append("risk_profile")
+
     if w := _data(wall_street):
         ws: dict[str, Any] = {}
         if c := w.consensus:
@@ -220,6 +233,33 @@ def build_facts(
         unavailable.append("recent_news")
 
     facts["unavailable_sections"] = unavailable
+    return facts
+
+
+def _drawdown_fact(d: Drawdown | None) -> str:
+    """'-33.4% (2024-12-26 to 2025-04-08, recovered 2025-10-14)'."""
+    if d is None:
+        return fmt.MISSING
+    recovery = f"recovered {d.recovery_date:%Y-%m-%d}" if d.recovery_date is not None else "not recovered"
+    return f"{fmt.pct(d.depth, 1)} ({d.peak_date:%Y-%m-%d} to {d.trough_date:%Y-%m-%d}, {recovery})"
+
+
+def _risk_facts(m: RiskMetrics) -> dict[str, str]:
+    """One security's risk metrics, pre-formatted, with windows in the key names."""
+    facts = {
+        "volatility_1y_annualized": fmt.pct(m.volatility_1y),
+        "total_return_1y": fmt.pct(m.return_1y, signed=True),
+        "sharpe_ratio_1y": fmt.num(m.sharpe_1y),
+        "max_drawdown_1y": _drawdown_fact(m.drawdown_1y),
+        "max_drawdown_2y": _drawdown_fact(m.drawdown_2y),
+    }
+    if m.beta_2y is not None:
+        facts |= {
+            "beta_2y": fmt.num(m.beta_2y),
+            "correlation_2y": fmt.num(m.correlation_2y),
+            "up_capture": fmt.pct(m.up_capture, 0),
+            "down_capture": fmt.pct(m.down_capture, 0),
+        }
     return facts
 
 

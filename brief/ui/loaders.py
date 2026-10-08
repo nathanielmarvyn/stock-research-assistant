@@ -11,6 +11,7 @@ from __future__ import annotations
 import functools
 from typing import Any, Callable, TypeVar
 
+import pandas as pd
 import streamlit as st
 
 from brief.ai_analysis import AnalysisResult, get_ai_analysis
@@ -18,9 +19,10 @@ from brief.config import get_settings
 from brief.financials import Financials, get_financials
 from brief.finnhub_client import EarningsEvent, WallStreetView, get_next_earnings, get_wall_street_view
 from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo, get_etf_profile, get_snapshot, validate_ticker
-from brief.models import SectionResult
+from brief.models import DataUnavailableError, SectionResult
 from brief.news import NewsBrief, get_news
-from brief.trends import PriceTrends, get_price_trends
+from brief.risk import RiskProfile, fetch_risk_free_rate, get_risk_profile
+from brief.trends import PriceTrends, fetch_price_history, get_price_trends
 
 TTL = get_settings().cache_ttl_seconds
 F = TypeVar("F", bound=Callable[..., SectionResult[Any]])
@@ -81,10 +83,51 @@ def load_financials(symbol: str) -> SectionResult[Financials]:
     return get_financials(symbol, load_ticker(symbol)[1])
 
 
+@st.cache_data(ttl=TTL, show_spinner=False)
+def _cached_history(symbol: str) -> pd.DataFrame:
+    """Two years of daily bars; raises (uncached) on failure."""
+    return fetch_price_history(symbol)
+
+
+def load_history(symbol: str) -> pd.DataFrame | None:
+    """Shared price history for the trends and risk sections, or None if unavailable.
+
+    On None, the section fetches again itself and reports the error properly.
+    """
+    try:
+        return _cached_history(symbol)
+    except DataUnavailableError:
+        return None
+
+
+@st.cache_data(ttl=TTL, show_spinner=False)
+def _cached_risk_free() -> float:
+    rate = fetch_risk_free_rate()
+    if rate is None:
+        raise DataUnavailableError("Risk-free rate unavailable")  # don't cache a miss
+    return rate
+
+
+def load_risk_free() -> float | None:
+    """13-week T-bill yield as a fraction, or None (Sharpe then shows as unavailable)."""
+    try:
+        return _cached_risk_free()
+    except DataUnavailableError:
+        return None
+
+
 @cache_successes
 def load_trends(symbol: str) -> SectionResult[PriceTrends]:
     """Price trends vs. the benchmark."""
-    return get_price_trends(symbol, get_settings().benchmark_ticker)
+    benchmark = get_settings().benchmark_ticker
+    return get_price_trends(symbol, benchmark, load_history(symbol), load_history(benchmark))
+
+
+@cache_successes
+def load_risk(symbol: str) -> SectionResult[RiskProfile]:
+    """Risk profile vs. the benchmark, reusing the cached price history."""
+    benchmark = get_settings().benchmark_ticker
+    return get_risk_profile(symbol, benchmark, load_history(symbol), load_history(benchmark), load_risk_free())
 
 
 @cache_successes
@@ -117,6 +160,7 @@ def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
         financials=None if is_etf else load_financials(symbol),
         etf=load_etf_profile(symbol) if is_etf else None,
         trends=load_trends(symbol),
+        risk=load_risk(symbol),
         wall_street=None if is_etf else load_wall_street(symbol),
         earnings=None if is_etf else load_earnings(symbol),
         news=load_news(symbol),
