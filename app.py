@@ -106,6 +106,11 @@ def brief(raw: str) -> None:
         trends = loaders.load_trends(symbol)
     ui.render_trends(trends, symbol)
 
+    st.divider()
+    with st.spinner("Measuring risk…"):
+        risk = loaders.load_risk(symbol)
+    ui.render_risk(risk, symbol)
+
     if not is_etf:
         st.divider()
         with st.spinner("Loading analyst ratings…"):
