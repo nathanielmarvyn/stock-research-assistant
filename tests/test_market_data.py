@@ -46,7 +46,7 @@ def test_unknown_ticker_rejected(unknown_info: dict) -> None:
 
 def test_unsupported_type_rejected() -> None:
     info = {"quoteType": "MUTUALFUND", "regularMarketPrice": 10.0, "currency": "USD"}
-    with pytest.raises(TickerValidationError, match="only stocks and ETFs"):
+    with pytest.raises(TickerValidationError, match="is a mutual fund; only stocks and ETFs"):
         parse_ticker_info("VFIAX", info)
 
 

@@ -47,6 +47,9 @@ class Settings:
     # Worst case at $10/M output tokens is about $0.08 per analysis.
     analysis_max_tokens: int = 8000
     analysis_effort: str = "medium"  # low | medium | high | xhigh | max
+    # Cost guard for a public demo: distinct tickers per browser session that
+    # get a (paid) AI analysis. Cached repeats don't count.
+    max_ai_analyses_per_session: int = 10
 
     cache_ttl_seconds: int = 15 * 60
     request_timeout_seconds: int = 10

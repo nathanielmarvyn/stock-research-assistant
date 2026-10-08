@@ -78,10 +78,27 @@ def _normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
 
+_MIN_SENTENCE = 40
+_ABBREVIATIONS = {
+    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+    "inc", "corp", "co", "ltd", "mr", "ms", "mrs", "dr", "st", "vs", "no", "u.s", "u.k", "e.g", "i.e",
+}
+
+
 def _first_sentence(text: str, limit: int = 180) -> str:
-    """First sentence of ``text``, trimmed to ``limit`` characters."""
-    sentence = re.split(r"(?<=[.!?])\s", text.strip(), maxsplit=1)[0]
-    return sentence if len(sentence) <= limit else sentence[: limit - 1].rstrip() + "…"
+    """First sentence of ``text``, trimmed to ``limit`` characters.
+
+    A sentence must end with . ! or ? followed by whitespace, run at least 40
+    characters, and not end on an abbreviation, so 'A U.S. court...',
+    '$37.5 billion', and 'on Oct. 14' aren't cut short.
+    """
+    text = text.strip()
+    for match in re.finditer(r"[.!?](?=\s)", text):
+        last_word = text[: match.start()].rsplit(maxsplit=1)[-1].lower() if match.start() else ""
+        if match.end() >= _MIN_SENTENCE and last_word not in _ABBREVIATIONS:
+            text = text[: match.end()]
+            break
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 def is_relevant(headline: str, symbol: str, keyword: str | None) -> bool:

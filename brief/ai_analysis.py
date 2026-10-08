@@ -295,7 +295,8 @@ def get_ai_analysis(
             settings.analysis_effort,
         )
     except anthropic.APIError as exc:
-        raise DataUnavailableError(f"AI analysis unavailable: {describe_api_error(exc)}.") from exc
+        message = describe_api_error(exc)
+        raise DataUnavailableError(f"{message[:1].upper()}{message[1:]}.") from exc
 
     unverified = unverified_figures(analysis, facts)
     if unverified:

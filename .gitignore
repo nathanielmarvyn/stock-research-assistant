@@ -16,3 +16,6 @@ Thumbs.db
 
 # Local installer script (not part of the project)
 install.cmd
+
+# Local tooling
+.claude/

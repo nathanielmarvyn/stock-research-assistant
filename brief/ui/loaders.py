@@ -1,0 +1,123 @@
+"""Cached data loaders for the Streamlit app.
+
+The data modules know nothing about Streamlit; caching lives here. Every loader
+is keyed by plain strings (the ticker), and only successful sections are
+cached, so a transient failure (rate limit, timeout) is retried on the next
+lookup instead of being served from cache for 15 minutes.
+"""
+
+from __future__ import annotations
+
+import functools
+from typing import Any, Callable, TypeVar
+
+import streamlit as st
+
+from brief.ai_analysis import AnalysisResult, get_ai_analysis
+from brief.config import get_settings
+from brief.financials import Financials, get_financials
+from brief.finnhub_client import EarningsEvent, WallStreetView, get_next_earnings, get_wall_street_view
+from brief.market_data import AssetType, EtfProfile, Snapshot, TickerInfo, get_etf_profile, get_snapshot, validate_ticker
+from brief.models import SectionResult
+from brief.news import NewsBrief, get_news
+from brief.trends import PriceTrends, get_price_trends
+
+TTL = get_settings().cache_ttl_seconds
+F = TypeVar("F", bound=Callable[..., SectionResult[Any]])
+
+
+class _FailedResult(Exception):
+    """Carries a failed SectionResult out of the cache (exceptions aren't cached)."""
+
+    def __init__(self, result: SectionResult[Any]) -> None:
+        super().__init__(result.error)
+        self.result = result
+
+
+def cache_successes(func: F) -> F:
+    """Cache a section loader for TTL seconds, but never cache a failed result."""
+
+    def _cached(*args: Any) -> SectionResult[Any]:
+        result = func(*args)
+        if not result.ok:
+            raise _FailedResult(result)
+        return result
+
+    # Streamlit keys caches by function name; give each wrapper a unique one.
+    _cached.__name__ = _cached.__qualname__ = f"{func.__qualname__}__cached"
+    cached = st.cache_data(ttl=TTL, show_spinner=False)(_cached)
+
+    @functools.wraps(func)
+    def wrapper(*args: Any) -> SectionResult[Any]:
+        try:
+            return cached(*args)
+        except _FailedResult as exc:
+            return exc.result
+
+    return wrapper  # type: ignore[return-value]
+
+
+@st.cache_data(ttl=TTL, show_spinner=False)
+def load_ticker(symbol: str) -> tuple[TickerInfo, dict[str, Any]]:
+    """Validated ticker identity and raw quote info. Errors propagate (and aren't cached)."""
+    return validate_ticker(symbol)
+
+
+@cache_successes
+def load_snapshot(symbol: str) -> SectionResult[Snapshot]:
+    """Company snapshot."""
+    return get_snapshot(load_ticker(symbol)[1])
+
+
+@cache_successes
+def load_etf_profile(symbol: str) -> SectionResult[EtfProfile]:
+    """ETF holdings, expense ratio, and AUM."""
+    return get_etf_profile(symbol, load_ticker(symbol)[1])
+
+
+@cache_successes
+def load_financials(symbol: str) -> SectionResult[Financials]:
+    """Quarterly financials and valuation ratios."""
+    return get_financials(symbol, load_ticker(symbol)[1])
+
+
+@cache_successes
+def load_trends(symbol: str) -> SectionResult[PriceTrends]:
+    """Price trends vs. the benchmark."""
+    return get_price_trends(symbol, get_settings().benchmark_ticker)
+
+
+@cache_successes
+def load_earnings(symbol: str) -> SectionResult[EarningsEvent]:
+    """Next earnings date."""
+    return get_next_earnings(symbol)
+
+
+@cache_successes
+def load_wall_street(symbol: str) -> SectionResult[WallStreetView]:
+    """Analyst consensus and price target."""
+    return get_wall_street_view(symbol, load_ticker(symbol)[1])
+
+
+@cache_successes
+def load_news(symbol: str) -> SectionResult[NewsBrief]:
+    """Recent headlines with sentiment."""
+    ticker = load_ticker(symbol)[0]
+    return get_news(symbol, ticker.name, is_etf=ticker.asset_type is AssetType.ETF)
+
+
+@cache_successes
+def load_analysis(symbol: str) -> SectionResult[AnalysisResult]:
+    """AI analysis over the other sections (all of which are cache hits by now)."""
+    ticker = load_ticker(symbol)[0]
+    is_etf = ticker.asset_type is AssetType.ETF
+    return get_ai_analysis(
+        ticker,
+        snapshot=load_snapshot(symbol),
+        financials=None if is_etf else load_financials(symbol),
+        etf=load_etf_profile(symbol) if is_etf else None,
+        trends=load_trends(symbol),
+        wall_street=None if is_etf else load_wall_street(symbol),
+        earnings=None if is_etf else load_earnings(symbol),
+        news=load_news(symbol),
+    )

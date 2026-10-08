@@ -38,6 +38,13 @@ class AssetType(str, Enum):
 
 
 _QUOTE_TYPES = {"EQUITY": AssetType.STOCK, "ETF": AssetType.ETF}
+_UNSUPPORTED_NAMES = {
+    "MUTUALFUND": "mutual fund",
+    "CRYPTOCURRENCY": "cryptocurrency",
+    "INDEX": "market index",
+    "FUTURE": "futures contract",
+    "CURRENCY": "currency pair",
+}
 
 
 class TickerValidationError(ValueError):
@@ -156,7 +163,8 @@ def parse_ticker_info(symbol: str, info: dict[str, Any]) -> TickerInfo:
         raise TickerValidationError(f"No security found for '{symbol}'.")
     if quote_type not in _QUOTE_TYPES:
         raise TickerValidationError(
-            f"{symbol} is a {quote_type.lower()}; only stocks and ETFs are supported."
+            f"{symbol} is a {_UNSUPPORTED_NAMES.get(quote_type, quote_type.lower())}; "
+            "only stocks and ETFs are supported."
         )
     currency = info.get("currency") or ""
     if currency != "USD":
