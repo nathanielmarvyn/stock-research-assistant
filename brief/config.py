@@ -40,9 +40,12 @@ class Settings:
 
     # Claude models: a cheap one for repetitive headline scoring,
     # a stronger one for the written analysis.
-    sentiment_model: str = "claude-haiku-4-5"
+    sentiment_model: str = "claude-haiku-5-5"
     analysis_model: str = "claude-sonnet-5-5"
-    sentiment_max_tokens: int = 1500
+    # Labeling headlines is simple: low effort matched higher settings' labels
+    # in testing while running fastest. Thinking tokens count toward max_tokens.
+    sentiment_effort: str = "low"
+    sentiment_max_tokens: int = 3000
     # Sonnet's adaptive thinking counts toward max_tokens, so leave headroom.
     # Worst case at $10/M output tokens is about $0.08 per analysis.
     analysis_max_tokens: int = 8000

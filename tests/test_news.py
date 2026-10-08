@@ -122,6 +122,7 @@ def test_score_headlines_maps_by_id() -> None:
     scored = news.score_headlines("Apple Inc.", "AAPL", [headline("a"), headline("b")], llm, "m", 100)
     assert [(h.summary, h.sentiment) for h in scored] == [("First.", "positive"), ("Second.", "negative")]
     assert llm.messages.kwargs["output_format"] is news._SentimentResponse
+    assert llm.messages.kwargs["output_config"] == {"effort": "low"}
 
 
 def test_score_headlines_keeps_unscored_items() -> None:

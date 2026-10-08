@@ -188,6 +188,7 @@ def score_headlines(
     client: MessagesClient,
     model: str,
     max_tokens: int,
+    effort: str = "low",
 ) -> list[Headline]:
     """Return the headlines with Claude's summaries and sentiment filled in."""
     response = client.messages.parse(
@@ -196,6 +197,7 @@ def score_headlines(
         system=SENTIMENT_SYSTEM,
         messages=[{"role": "user", "content": build_sentiment_prompt(company, symbol, headlines)}],
         output_format=_SentimentResponse,
+        output_config={"effort": effort},
     )
     parsed = response.parsed_output
     if parsed is None:
@@ -283,6 +285,7 @@ def get_news(
             llm or anthropic_client(),
             settings.sentiment_model,
             settings.sentiment_max_tokens,
+            settings.sentiment_effort,
         )
     except (anthropic.APIError, DataUnavailableError) as exc:
         note = f"Sentiment unavailable: {describe_api_error(exc)}. Showing source summaries."

@@ -20,7 +20,7 @@ _Screenshot placeholder: full brief for AAPL_
 | **Fund profile** (ETFs) | Expense ratio, AUM, category, top 10 holdings | Yahoo Finance |
 | **Price trends** | Interactive chart with 50/200-day moving averages and volume; 1M/6M/YTD/1Y total return vs. SPY; RSI(14); volume vs. 30-day average | Yahoo Finance |
 | **Wall Street view** (stocks) | Analyst consensus with month-over-month drift, rating distribution, average price target and implied move | Finnhub, Yahoo Finance |
-| **Recent news** | Up to 10 headlines from the past two weeks with source, date, link, one-line summary, and sentiment, plus an overall score | Finnhub, Claude Haiku 4.5 |
+| **Recent news** | Up to 10 headlines from the past two weeks with source, date, link, one-line summary, and sentiment, plus an overall score | Finnhub, Claude Haiku 5.5 |
 | **AI analysis** | Summary, bull case, bear case, key risks, what to watch, with a grounding check and disclaimer | Claude Sonnet 5.5 |
 
 Every section shows when its data is from ("Data as of Oct 7, 2026, 4:00 PM ET") and where it came from.
@@ -52,7 +52,7 @@ flowchart LR
 
     MD & FIN & TR --> YF[(yfinance)]
     FH & NW --> FHAPI[(Finnhub API)]
-    NW -->|one batched call| HAIKU[(Claude Haiku 4.5)]
+    NW -->|one batched call| HAIKU[(Claude Haiku 5.5)]
     AI -->|facts document only| SONNET[(Claude Sonnet 5.5)]
 
     MD & FIN & TR & FH & NW --> AI
@@ -114,7 +114,7 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 - **Caching:** 15-minute cache per section, and failures are never cached, so a rate limit retries on the next lookup.
 - **Finnhub client:** retries with backoff on HTTP 429, and gives clear messages for bad keys, paid-only endpoints, and timeouts.
 - **Graceful degradation:** if Claude is down, the news section still shows headlines with source summaries. If Finnhub is down, the price target still shows.
-- **Cost controls:** one batched Haiku call for all headlines; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Measured cost is about 2 cents per new brief (Haiku sentiment ≈ $0.003, Sonnet analysis ≈ $0.013–0.017); cached repeats are free.
+- **Cost controls:** one batched Haiku call for all headlines at `low` effort; Sonnet at `medium` effort with a token cap; at most 10 AI analyses per browser session on the public demo. Measured usage per new brief: Haiku sentiment ≈ 2K input / 0.7K output tokens, Sonnet analysis ≈ 2–3K input / ~1K output tokens (about 1.3–1.7 cents); cached repeats are free.
 
 ---
 
