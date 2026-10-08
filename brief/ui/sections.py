@@ -237,9 +237,16 @@ def render_trends(trends: SectionResult[PriceTrends], symbol: str) -> None:
         c3, c4 = st.columns(2)
         c3.metric("RSI (14-day)", fmt.num(t.rsi14, 1), rsi_zone(t.rsi14), delta_color="off", delta_arrow="off",
                   help="Relative Strength Index (Wilder). Above 70 is conventionally 'overbought', below 30 'oversold'.")
-        c4.metric("Volume vs 30-day avg", fmt.num(t.relative_volume, 2, "x"),
-                  f"{fmt.volume(t.latest_volume)} vs {fmt.volume(t.avg_volume_30d)}", delta_color="off",
-                  delta_arrow="off")
+        c4.metric(
+            "Volume vs 30-day avg" + (" (prior session)" if t.volume_from_prior_session else ""),
+            fmt.num(t.relative_volume, 2, "x"),
+            f"{fmt.volume(t.latest_volume)} vs {fmt.volume(t.avg_volume_30d)}",
+            delta_color="off",
+            delta_arrow="off",
+            help="Today's session is still trading, so this compares the last full session's volume."
+            if t.volume_from_prior_session
+            else "Latest session's volume vs. the average of the 30 sessions before it.",
+        )
 
 
 # ---------------------------------------------------------------- 4. Wall Street

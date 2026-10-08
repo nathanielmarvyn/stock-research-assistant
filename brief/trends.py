@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 HISTORY_PERIOD = "2y"
 CHART_DAYS = 365
 PERIODS = ("1M", "6M", "YTD", "1Y")
+NEW_YORK = "America/New_York"
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,9 @@ class PriceTrends:
     avg_volume_30d: float | None
     relative_volume: float | None
     chart: pd.DataFrame  # last ~1Y: Close, SMA50, SMA200, Volume
+    # True when today's session is still trading, so the volume figures describe
+    # the previous full session (a half-day's volume vs. full-day averages misleads).
+    volume_from_prior_session: bool = False
 
     @property
     def above_sma50(self) -> bool | None:
@@ -85,10 +89,26 @@ def fetch_price_history(symbol: str, period: str = HISTORY_PERIOD) -> pd.DataFra
     return history
 
 
+def session_in_progress(bar_date: pd.Timestamp, now: datetime) -> bool:
+    """True if ``bar_date`` is today's New York session and it hasn't closed yet."""
+    day = bar_date.tz_localize(NEW_YORK) if bar_date.tzinfo is None else bar_date.tz_convert(NEW_YORK)
+    close = day.normalize() + pd.Timedelta(hours=16)
+    now_ny = pd.Timestamp(now).tz_convert(NEW_YORK)
+    return now_ny.normalize() == day.normalize() and now_ny < close
+
+
 def build_price_trends(
-    history: pd.DataFrame, benchmark_history: pd.DataFrame | None, benchmark: str
+    history: pd.DataFrame,
+    benchmark_history: pd.DataFrame | None,
+    benchmark: str,
+    now: datetime | None = None,
 ) -> PriceTrends:
-    """Compute all trend metrics from daily history. Benchmark data is optional."""
+    """Compute all trend metrics from daily history. Benchmark data is optional.
+
+    Price-based metrics use the latest (possibly live) bar. Volume metrics use
+    the last completed session, since a partial day's volume isn't comparable
+    to full-day averages.
+    """
     close = history["Close"].dropna()
     if close.empty:
         raise DataUnavailableError("Price history contains no closing prices.")
@@ -109,7 +129,9 @@ def build_price_trends(
         for p in PERIODS
     ]
 
-    avg_volume, rel_volume = ind.relative_volume(volume)
+    in_progress = not volume.empty and session_in_progress(volume.index[-1], now or utc_now())
+    complete_volume = volume.iloc[:-1] if in_progress else volume
+    avg_volume, rel_volume = ind.relative_volume(complete_volume)
 
     chart = pd.DataFrame(
         {
@@ -128,10 +150,11 @@ def build_price_trends(
         sma50=ind.latest_sma(close, 50),
         sma200=ind.latest_sma(close, 200),
         rsi14=ind.latest_rsi(close),
-        latest_volume=float(volume.iloc[-1]) if not volume.empty else None,
+        latest_volume=float(complete_volume.iloc[-1]) if not complete_volume.empty else None,
         avg_volume_30d=avg_volume,
         relative_volume=rel_volume,
         chart=chart,
+        volume_from_prior_session=in_progress,
     )
 
 
@@ -160,6 +183,6 @@ def get_price_trends(
 
 def bar_close_time(bar_date: pd.Timestamp) -> datetime:
     """UTC time a daily bar's data is current to: 4pm New York, or now if the session is live."""
-    day = bar_date.tz_localize("America/New_York") if bar_date.tzinfo is None else bar_date
-    close = day.tz_convert("America/New_York").normalize() + pd.Timedelta(hours=16)
+    day = bar_date.tz_localize(NEW_YORK) if bar_date.tzinfo is None else bar_date
+    close = day.tz_convert(NEW_YORK).normalize() + pd.Timedelta(hours=16)
     return min(close.tz_convert("UTC").to_pydatetime(), utc_now())

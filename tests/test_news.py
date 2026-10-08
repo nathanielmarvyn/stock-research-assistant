@@ -33,10 +33,10 @@ def test_company_keyword(name: str, keyword: str | None) -> None:
 
 
 def test_is_relevant() -> None:
-    assert news.is_relevant("Apple unveils new iPhone", "AAPL", "Apple")
-    assert news.is_relevant("Why AAPL stock rose", "AAPL", "Apple")
-    assert not news.is_relevant("Pineapple prices jump", "AAPL", "Apple")  # word boundary
-    assert not news.is_relevant("It was a big day", "IT", None)  # ticker match is case-sensitive
+    assert news.is_relevant("Apple unveils new iPhone", "AAPL", ("Apple",))
+    assert news.is_relevant("Why AAPL stock rose", "AAPL", ("Apple",))
+    assert not news.is_relevant("Pineapple prices jump", "AAPL", ("Apple",))  # word boundary
+    assert not news.is_relevant("It was a big day", "IT")  # ticker match is case-sensitive
 
 
 def test_selection_keeps_only_relevant_and_dedupes() -> None:
@@ -46,23 +46,23 @@ def test_selection_keeps_only_relevant_and_dedupes() -> None:
         article("Fed holds rates", 400),  # unrelated: never used as filler
         article("Apple faces EU probe", 200),
     ]
-    picked = news.select_headlines(articles, "AAPL", "Apple", max_items=10)
+    picked = news.select_headlines(articles, "AAPL", ("Apple",), max_items=10)
     assert [h.headline for h in picked] == ["Apple beats estimates", "Apple faces EU probe"]
 
 
 def test_selection_respects_max_items() -> None:
     articles = [article(f"Apple story {i}", i) for i in range(1, 20)]
-    picked = news.select_headlines(articles, "AAPL", "Apple", max_items=10)
+    picked = news.select_headlines(articles, "AAPL", ("Apple",), max_items=10)
     assert len(picked) == 10 and picked[0].headline == "Apple story 19"
 
 
 def test_selection_skips_incomplete_articles() -> None:
     articles = [{"headline": "", "datetime": 1, "url": "u"}, {"headline": "Apple x", "datetime": 2}]
-    assert news.select_headlines(articles, "AAPL", "Apple", max_items=10) == []
+    assert news.select_headlines(articles, "AAPL", ("Apple",), max_items=10) == []
 
 
 def test_selection_on_captured_aapl_news() -> None:
-    picked = news.select_headlines(load_json("finnhub_news_aapl.json"), "AAPL", "Apple", max_items=10)
+    picked = news.select_headlines(load_json("finnhub_news_aapl.json"), "AAPL", ("Apple",), max_items=10)
     assert news.MIN_HEADLINES <= len(picked) <= 10
     assert len({h.headline for h in picked}) == len(picked)
     assert all("Apple" in h.headline or "AAPL" in h.headline for h in picked)
@@ -74,7 +74,7 @@ def test_etf_matches_ticker_not_fund_name() -> None:
     result = news.get_news("SPY", "State Street SPDR S&P 500 ETF Trust", is_etf=True,
                            finnhub=FakeFinnhub(articles), llm=fake_llm(error=news.DataUnavailableError("off")))
     assert [h.headline for h in result.data.headlines] == ["SPY slips from record"]
-    assert "Only 1 headline named SPY" in result.data.coverage_note
+    assert "Only 1 headline named SPY or S&P 500" in result.data.coverage_note
 
 
 # ---------------------------------------------------------------- sentiment
@@ -161,3 +161,28 @@ def test_news_section_degrades_when_claude_fails() -> None:
 def test_news_section_fails_with_no_articles() -> None:
     result = news.get_news("ZZZ", "Zzz Inc.", finnhub=FakeFinnhub([]), llm=fake_llm())
     assert not result.ok and "No headlines naming ZZZ" in result.error
+
+
+@pytest.mark.parametrize(
+    "symbol, name, expected",
+    [
+        ("SPY", "State Street SPDR S&P 500 ETF Trust", ("S&P 500",)),
+        ("QQQ", "Invesco QQQ Trust, Series 1", ("Nasdaq",)),  # name omits the index
+        ("IWM", "iShares Russell 2000 ETF", ("Russell 2000",)),  # deduped
+        ("XLK", "Technology Select Sector SPDR Fund", ()),
+    ],
+)
+def test_etf_keywords(symbol: str, name: str, expected: tuple) -> None:
+    assert news.etf_keywords(symbol, name) == expected
+
+
+def test_index_phrase_matching() -> None:
+    assert news.is_relevant("S&P 500 slips from record high", "SPY", ("S&P 500",))
+    assert not news.is_relevant("S&P 5000 is not an index", "SPY", ("S&P 500",))
+
+
+def test_etf_news_matches_index_name() -> None:
+    articles = [article("S&P 500 slips from record", 300), article("Governor declares State emergency", 200)]
+    result = news.get_news("SPY", "State Street SPDR S&P 500 ETF Trust", is_etf=True,
+                           finnhub=FakeFinnhub(articles), llm=fake_llm(error=news.DataUnavailableError("off")))
+    assert [h.headline for h in result.data.headlines] == ["S&P 500 slips from record"]
