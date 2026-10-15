@@ -99,3 +99,57 @@ def test_etf_profile(spy_info: dict, spy_holdings_df: pd.DataFrame) -> None:
 def test_empty_holdings() -> None:
     assert parse_top_holdings(pd.DataFrame()) == []
     assert parse_top_holdings(None) == []
+
+
+# ---------------------------------------------------------------- Yahoo profile fallback
+
+AAPL_FAST = {"quoteType": "EQUITY", "currency": "USD", "exchange": "NMS", "lastPrice": 346.39, "previousClose": 344.78,
+             "yearHigh": 348.15, "yearLow": 243.42, "marketCap": 5.06e12}
+AAPL_PROFILE = {"name": "Apple Inc", "finnhubIndustry": "Technology", "marketCapitalization": 5005219.7, "currency": "USD"}
+AAPL_QUOTE = {"c": 347.21, "d": 4.25, "dp": 1.2392, "pc": 342.96, "t": 1792071460}
+AAPL_METRIC = {"52WeekHigh": 348.1499, "52WeekLow": 243.42, "peTTM": 38.73, "currentDividendYieldTTM": 0.3132,
+               "totalDebt/totalEquityQuarterly": 0.7844}
+
+
+def test_fallback_info_matches_yahoo_shape() -> None:
+    from brief.market_data import build_fallback_info
+
+    info = build_fallback_info(AAPL_FAST, AAPL_PROFILE, AAPL_QUOTE, AAPL_METRIC)
+    ticker = parse_ticker_info("AAPL", info)
+    assert ticker.name == "Apple Inc" and ticker.asset_type is AssetType.STOCK
+    snap = parse_snapshot(info)
+    assert snap.price == 347.21 and snap.day_change_pct == pytest.approx(0.012392)  # percent -> fraction
+    assert snap.dividend_yield == pytest.approx(0.003132)
+    assert snap.week52_high == pytest.approx(348.1499)
+    assert info["debtToEquity"] == pytest.approx(78.44)  # yfinance's percent units
+    assert info["_fallback"] is True
+
+
+def test_fallback_identifies_etf_without_finnhub_profile() -> None:
+    from brief.market_data import build_fallback_info
+
+    fast = {"quoteType": "ETF", "currency": "USD", "lastPrice": 766.14, "previousClose": 767.13, "yearHigh": 781.62, "yearLow": 629.28}
+    info = build_fallback_info(fast, {}, {}, {})
+    assert parse_ticker_info("SPY", info).asset_type is AssetType.ETF
+    assert parse_snapshot(info).price == 766.14  # chart price when Finnhub has no quote
+
+
+def test_validate_uses_fallback_when_yahoo_profile_is_empty(monkeypatch) -> None:
+    """The live-site failure: Yahoo's profile returns {} from a cloud IP."""
+    from brief import market_data as md
+
+    monkeypatch.setattr(md, "fetch_info", lambda symbol: {"trailingPegRatio": None})
+    monkeypatch.setattr(md, "fetch_fallback_info",
+                        lambda symbol: md.build_fallback_info(AAPL_FAST, AAPL_PROFILE, AAPL_QUOTE, AAPL_METRIC))
+    ticker, info = md.validate_ticker("aapl")
+    assert ticker.symbol == "AAPL" and info["_fallback"]
+    assert md.get_snapshot(info).source == md.FALLBACK_SOURCE
+
+
+def test_validate_still_rejects_unknown_tickers(monkeypatch) -> None:
+    from brief import market_data as md
+
+    monkeypatch.setattr(md, "fetch_info", lambda symbol: {})
+    monkeypatch.setattr(md, "fetch_fallback_info", lambda symbol: md.build_fallback_info({}, {}, {}, {}))
+    with pytest.raises(TickerValidationError, match="No security found"):
+        md.validate_ticker("ZZZZQ")
