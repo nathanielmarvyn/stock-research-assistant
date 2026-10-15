@@ -59,7 +59,30 @@ STYLES = """
 .tb-summary { font-size: 1.1rem; line-height: 1.65; margin: .25rem 0 .5rem; }
 .tb-tagline { text-align: center; opacity: .8; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
 .tb-footnote { text-align: center; opacity: .65; font-size: .8rem; margin-top: 2.5rem; }
-@media (prefers-reduced-motion: reduce) { .st-key-hero, .st-key-topbar, .st-key-brief_body { animation: none; } }
+/* Contrast (WCAG AA 4.5:1): Streamlit draws captions and table headers at 60% ink, which
+   measured 3.9:1 on cream. 75-80% clears AA in both light and dark mode. */
+[data-testid="stCaptionContainer"] { opacity: .75 !important; }
+[data-testid="stTable"] th { color: inherit !important; opacity: .8; }
+/* Touch targets: 44px minimum for taps (tabs, chips, logo link). */
+[role="tab"] { min-height: 44px; }
+[data-testid="stButtonGroup"] button { min-height: 40px; }
+.tb-home-link { padding: 7px 6px; margin-left: -6px; }
+/* Summary skeleton: holds the summary's space while it loads, so the chart below doesn't jump. */
+.tb-skeleton { display: grid; gap: .7rem; padding: .35rem 0 .6rem; }
+.tb-skeleton span { display: block; height: .95rem; border-radius: .3rem;
+  background: linear-gradient(90deg, rgba(128,128,128,.14) 25%, rgba(128,128,128,.26) 50%, rgba(128,128,128,.14) 75%);
+  background-size: 200% 100%; animation: tb-shimmer 1.4s ease-in-out infinite; }
+@keyframes tb-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+/* Phones: show every tab (wrap instead of scrolling off-screen), bigger taps, and drop the
+   top-bar chips so search and content start sooner. */
+@media (max-width: 640px) {
+  [role="tablist"] { flex-wrap: wrap; row-gap: .25rem; }
+  [data-testid="stButtonGroup"] button { min-height: 44px; }
+  .st-key-top_picks { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-key-hero, .st-key-topbar, .st-key-brief_body, .tb-skeleton span { animation: none; }
+}
 </style>
 """
 

@@ -255,6 +255,12 @@ def summary_placeholder() -> None:
     """Shown in the summary slot while the rest of the brief loads."""
     with st.container(border=True):
         st.markdown("**:material/auto_awesome: At a glance**")
+        # Four lines at roughly the summary's height, so the page doesn't jump when it arrives.
+        st.html(
+            '<div class="tb-skeleton" role="status" aria-label="Writing a short summary">'
+            + '<span style="width:100%"></span><span style="width:96%"></span>'
+            + '<span style="width:98%"></span><span style="width:62%"></span></div>'
+        )
         st.caption("Writing a short summary once the data below has loaded…")
 
 
