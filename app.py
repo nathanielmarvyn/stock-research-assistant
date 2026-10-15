@@ -73,6 +73,11 @@ STYLES = """
   transition: border-color .2s ease, box-shadow .2s ease; }
 .st-key-features [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]:hover {
   border-color: rgba(245,158,11,.6); box-shadow: 0 0 18px rgba(245,158,11,.12); }
+/* Feature cards: icon above a one-line title, everything centered so the four cards line up. */
+.st-key-features [data-testid="stMarkdownContainer"] p { text-align: center; }
+.st-key-features [data-testid="stMarkdownContainer"] p strong { white-space: nowrap; }
+.st-key-features [data-testid="stIconMaterial"] { font-size: 1.75rem; color: #F59E0B; margin-bottom: .25rem; }
+.st-key-features [data-testid="stCaptionContainer"] { text-align: center; }
 .st-key-trust { text-align: center; opacity: .85; font-size: .9rem; }
 .st-key-trust [data-testid="stMarkdownContainer"] p { text-align: center; }
 .tb-footnote { text-align: center; opacity: .75; font-size: .8rem; margin-top: 1.5rem; }
@@ -158,9 +163,9 @@ FEATURES = (
      "What the company does, how it's performing, and its biggest risk, with every figure checked."),
     (":material/monitoring:", "Price and risk",
      "Returns vs. the S&P 500, drawdowns, beta, Sharpe, and a bull/bear signal gauge."),
-    (":material/account_balance:", "Fundamentals and valuation",
+    (":material/account_balance:", "Fundamentals",
      "Four quarters of results, earnings beats and misses, and P/E vs. the market."),
-    (":material/groups:", "Insiders and ownership",
+    (":material/groups:", "Insider activity",
      "Open-market insider trades from SEC Form 4 filings, flagged when notable."),
 )
 TRUST = (
@@ -190,7 +195,7 @@ def home() -> None:
     with st.container(key="features"):
         for col, (icon, title, text) in zip(st.columns(len(FEATURES)), FEATURES):
             with col.container(border=True):
-                st.markdown(f"{icon} **{title}**")
+                st.markdown(f"{icon}  \n**{title}**")
                 st.caption(text)
 
     with st.container(key="trust"):

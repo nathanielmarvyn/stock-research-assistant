@@ -15,8 +15,16 @@ def test_logo_uses_theme_colors_and_current_color() -> None:
 
 
 def test_brand_sizes() -> None:
-    assert "TickerBrief" in graphics.brand_html("large") and "font-size:56px" in graphics.brand_html("large")
+    assert "TickerBrief" in graphics.brand_html("large") and "font-size:clamp(34px,11vw,56px)" in graphics.brand_html("large")
     assert "font-size:22px" in graphics.brand_html("small")
+
+
+def test_homepage_logo_sits_between_words() -> None:
+    large = graphics.brand_html("large")
+    assert large.index(">Ticker<") < large.index("<img") < large.index(">Brief<")
+    assert 'aria-label="TickerBrief"' in large  # read as one name, not "Ticker, image, Brief"
+    small = graphics.brand_html("small")
+    assert small.index("<img") < small.index(">TickerBrief<")  # top bar unchanged: logo first
 
 
 @pytest.mark.parametrize("net, degrees", [(-1.0, -90.0), (0.0, 0.0), (0.38, 34.2), (1.0, 90.0), (2.0, 90.0)])

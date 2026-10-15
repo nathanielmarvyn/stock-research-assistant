@@ -43,8 +43,25 @@ def logo_svg(size: int = 44, p: Palette = OLED) -> str:
 
 
 def brand_html(size: str = "large", p: Palette = OLED, href: str | None = None) -> str:
-    """Logo plus the TickerBrief wordmark in the heading serif; a link when ``href`` is given."""
-    logo_px, text_px, gap = (64, 56, 16) if size == "large" else (30, 22, 8)
+    """Logo plus the TickerBrief wordmark; a link when ``href`` is given.
+
+    ``large`` (homepage only) splits the wordmark around the logo: Ticker [logo] Brief.
+    ``small`` (top bar) keeps the logo to the left of the full name.
+    """
+    logo_px, text_px, gap = (64, 56, 14) if size == "large" else (30, 22, 8)
+    if size == "large":  # homepage: the logo sits between "Ticker" and "Brief"
+        # Equal-width columns either side, so the logo lands on the page's center line
+        # even though "Ticker" is wider than "Brief". Sizes shrink to fit a phone screen.
+        word = (
+            f'<span aria-hidden="true" style="flex:1 1 0;text-align:{{}};font-family:IBM Plex Sans,system-ui,sans-serif;font-weight:600;'
+            f'font-size:clamp(34px,11vw,{text_px}px);letter-spacing:-0.01em;line-height:1">{{}}</span>'
+        )
+        return (
+            f'<div class="tb-brand tb-brand-large" role="img" aria-label="{APP_NAME}" style="display:flex;'
+            f'align-items:center;justify-content:center;gap:{gap}px">'
+            f"{word.format('right', 'Ticker')}<span style=\"flex:none\">{svg_img(logo_svg(logo_px, p), f'clamp(40px,12vw,{logo_px}px)', '')}</span>"
+            f"{word.format('left', 'Brief')}</div>"
+        )
     brand = (
         f'<div class="tb-brand tb-brand-{size}" style="display:flex;align-items:center;gap:{gap}px;'
         f'justify-content:{"center" if size == "large" else "flex-start"}">'
