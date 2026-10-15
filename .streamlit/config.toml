@@ -25,6 +25,9 @@ dataframeBorderColor = "#E6DFD1"
 dataframeHeaderBackgroundColor = "#EFE8DA"
 greenColor = "#2E6B4F"
 redColor = "#A8323F"
+# Neutral badges: Streamlit's default gray measured 3.6:1 on cream (WCAG AA needs 4.5:1).
+grayTextColor = "#57534C"
+grayBackgroundColor = "#57534C1A"
 blueColor = "#2E6BB0"
 yellowColor = "#B07A1E"
 
@@ -42,6 +45,8 @@ dataframeBorderColor = "#3A352E"
 dataframeHeaderBackgroundColor = "#2B2722"
 greenColor = "#5FAE86"
 redColor = "#DB6A8A"
+grayTextColor = "#C9C1B0"
+grayBackgroundColor = "#C9C1B01F"
 blueColor = "#4F8FD6"
 yellowColor = "#B88A1E"
 
