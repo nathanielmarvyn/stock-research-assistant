@@ -11,6 +11,7 @@ the parsers, not in the UI.
 
 from __future__ import annotations
 
+import logging
 import math
 import numbers
 import re
@@ -24,6 +25,8 @@ import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
 
 from brief.models import DataUnavailableError, SectionResult, safe_section
+
+logger = logging.getLogger(__name__)
 
 SOURCE = "Yahoo Finance (yfinance)"
 
@@ -183,14 +186,98 @@ def parse_ticker_info(symbol: str, info: dict[str, Any]) -> TickerInfo:
     )
 
 
+FALLBACK_SOURCE = "Yahoo Finance (price chart) and Finnhub (profile, quote, metrics)"
+
+
+def info_is_usable(info: dict[str, Any]) -> bool:
+    """True if Yahoo's profile came back with a security type and a price."""
+    return bool(info.get("quoteType")) and first_number(info, "regularMarketPrice", "currentPrice") is not None
+
+
+def build_fallback_info(
+    fast: dict[str, Any], profile: dict[str, Any], quote: dict[str, Any], metric: dict[str, Any]
+) -> dict[str, Any]:
+    """Rebuild the fields the brief needs, in Yahoo's info shape, from other sources.
+
+    Used when Yahoo's profile endpoint returns nothing (it rate-limits shared cloud
+    IPs harder than its price-chart endpoint). ``fast`` is yfinance fast_info
+    (chart data); ``profile``, ``quote``, and ``metric`` are Finnhub responses.
+    Units match yfinance's info: dividend yield and change percent in percent,
+    debt-to-equity in percent.
+    """
+    mcap_millions = first_number(profile, "marketCapitalization")
+    de_ratio = first_number(metric, "totalDebt/totalEquityQuarterly")
+    info: dict[str, Any] = {
+        "quoteType": fast.get("quoteType") or ("EQUITY" if profile else None),
+        "longName": profile.get("name"),
+        "currency": fast.get("currency") or profile.get("currency"),
+        "exchange": fast.get("exchange"),
+        "regularMarketPrice": first_number(quote, "c") or first_number(fast, "lastPrice"),
+        "regularMarketPreviousClose": first_number(quote, "pc") or first_number(fast, "previousClose"),
+        "regularMarketChange": first_number(quote, "d"),
+        "regularMarketChangePercent": first_number(quote, "dp"),
+        "regularMarketTime": first_number(quote, "t"),
+        "fiftyTwoWeekLow": first_number(metric, "52WeekLow") or first_number(fast, "yearLow"),
+        "fiftyTwoWeekHigh": first_number(metric, "52WeekHigh") or first_number(fast, "yearHigh"),
+        "marketCap": first_number(fast, "marketCap") or (mcap_millions * 1e6 if mcap_millions else None),
+        "industry": profile.get("finnhubIndustry"),
+        "trailingPE": first_number(metric, "peTTM"),
+        "dividendYield": first_number(metric, "currentDividendYieldTTM"),
+        "debtToEquity": de_ratio * 100 if de_ratio is not None else None,
+        "_fallback": True,
+    }
+    return {k: v for k, v in info.items() if v is not None}
+
+
+def fetch_fallback_info(symbol: str) -> dict[str, Any]:
+    """Gather fallback inputs; each source is optional and failures are ignored."""
+    from brief.finnhub_client import FinnhubClient  # local import: finnhub_client imports this module
+
+    fast: dict[str, Any] = {}
+    try:
+        fi = yf.Ticker(symbol).fast_info
+        for key in ("quoteType", "currency", "exchange", "lastPrice", "previousClose", "yearHigh", "yearLow", "marketCap"):
+            try:
+                fast[key] = fi[key]
+            except Exception:  # individual fast_info fields can be missing
+                pass
+    except Exception as exc:
+        logger.warning("Yahoo chart data unavailable for %s: %s", symbol, exc)
+
+    finnhub: dict[str, dict[str, Any]] = {}
+    client = FinnhubClient()
+    for name, path, params in (
+        ("profile", "/stock/profile2", {}),
+        ("quote", "/quote", {}),
+        ("metric", "/stock/metric", {"metric": "all"}),
+    ):
+        try:
+            data = client.get(path, symbol=symbol, **params)
+            finnhub[name] = (data.get("metric", {}) if name == "metric" else data) if isinstance(data, dict) else {}
+        except Exception as exc:
+            logger.warning("Finnhub %s unavailable for %s: %s", name, symbol, exc)
+            finnhub[name] = {}
+    return build_fallback_info(fast, finnhub["profile"], finnhub["quote"], finnhub["metric"])
+
+
 def validate_ticker(raw: str) -> tuple[TickerInfo, dict[str, Any]]:
     """Normalize, fetch, and validate a ticker. Returns identity plus raw info.
 
     The raw info is returned so callers can build sections without a second
-    network round trip.
+    network round trip. If Yahoo's profile endpoint returns nothing (common from
+    shared cloud IPs), the essentials are rebuilt from Yahoo's chart data and
+    Finnhub before concluding the ticker doesn't exist.
     """
     symbol = normalize_symbol(raw)
-    info = fetch_info(symbol)
+    try:
+        info = fetch_info(symbol)
+    except DataSourceError as exc:
+        logger.warning("Yahoo profile failed for %s, trying fallback: %s", symbol, exc)
+        info = {}
+    if not info_is_usable(info):
+        logger.warning("Yahoo profile empty for %s; using chart data + Finnhub", symbol)
+        fallback = fetch_fallback_info(symbol)
+        info = {**fallback, **{k: v for k, v in info.items() if v is not None}}
     return parse_ticker_info(symbol, info), info
 
 
@@ -230,7 +317,8 @@ def parse_snapshot(info: dict[str, Any]) -> Snapshot:
 @safe_section(SOURCE)
 def get_snapshot(info: dict[str, Any]) -> SectionResult[Snapshot]:
     """Snapshot section, stamped with the time of the last quote."""
-    return SectionResult.success(parse_snapshot(info), SOURCE, as_of=quote_time(info))
+    source = FALLBACK_SOURCE if info.get("_fallback") else SOURCE
+    return SectionResult.success(parse_snapshot(info), source, as_of=quote_time(info))
 
 
 # ---------------------------------------------------------------- ETF profile

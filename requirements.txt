@@ -1,12 +1,13 @@
+# Pinned to the exact versions tested, so deploys are reproducible.
 # Runtime
-streamlit~=1.65
-yfinance~=1.7
-pandas~=3.0
-plotly~=7.1
-anthropic~=1.12
-pydantic~=2.13
-requests~=2.34
-python-dotenv~=1.2
+streamlit==1.65.0
+yfinance==1.7.0
+pandas==3.0.6
+plotly==7.1.0
+anthropic==1.12.0
+pydantic==2.13.5
+requests==2.34.2
+python-dotenv==1.2.4
 
 # Testing
-pytest~=9.1
+pytest==9.1.1

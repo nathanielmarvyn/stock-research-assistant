@@ -8,6 +8,7 @@ lookup instead of being served from cache for 15 minutes.
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 from typing import Any, Callable, TypeVar
 
@@ -72,7 +73,14 @@ def cache_successes(func: F) -> F:
 @st.cache_data(ttl=TTL, show_spinner=False)
 def load_ticker(symbol: str) -> tuple[TickerInfo, dict[str, Any]]:
     """Validated ticker identity and raw quote info. Errors propagate (and aren't cached)."""
-    return validate_ticker(symbol)
+    ticker, info = validate_ticker(symbol)
+    if info.get("_fallback") and ticker.name == ticker.symbol:
+        # Yahoo's profile was unavailable and Finnhub has no name (common for ETFs):
+        # use the search list's name instead of showing the bare ticker as the title.
+        listed = next((e.name for e in load_universe() if e.symbol in (ticker.symbol, ticker.symbol.replace("-", "."))), None)
+        if listed:
+            ticker = dataclasses.replace(ticker, name=listed)
+    return ticker, info
 
 
 @cache_successes
