@@ -1,7 +1,7 @@
 """Hand-built SVG graphics: the TickerBrief logo and the signal-balance gauge.
 
 Pure functions returning markup strings, so they're easy to test and theme.
-Colors come from the chart ``Palette`` (light or dark).
+Colors come from the chart ``Palette`` (the OLED theme).
 
 The SVGs are delivered as data-URI <img> tags because Streamlit's st.html
 sanitizer strips inline <svg>. Inside an image the SVG can't inherit the page's
@@ -16,7 +16,7 @@ import math
 from html import escape
 
 from brief.signals import BEARISH_BELOW, BULLISH_ABOVE
-from brief.ui.charts import LIGHT, Palette
+from brief.ui.charts import OLED, Palette
 
 APP_NAME = "TickerBrief"
 
@@ -27,7 +27,7 @@ def svg_img(svg: str, width: str, alt: str) -> str:
     return f'<img src="data:image/svg+xml;base64,{data}" alt="{escape(alt)}" style="width:{width};height:auto;display:block">'
 
 
-def logo_svg(size: int = 44, p: Palette = LIGHT) -> str:
+def logo_svg(size: int = 44, p: Palette = OLED) -> str:
     """Three rising candlesticks: ink, ochre, burgundy (the chart colors)."""
     return (
         f'<svg width="{size}" height="{size}" viewBox="0 0 44 44" role="img" aria-label="{APP_NAME} logo" '
@@ -42,14 +42,14 @@ def logo_svg(size: int = 44, p: Palette = LIGHT) -> str:
     )
 
 
-def brand_html(size: str = "large", p: Palette = LIGHT, href: str | None = None) -> str:
+def brand_html(size: str = "large", p: Palette = OLED, href: str | None = None) -> str:
     """Logo plus the TickerBrief wordmark in the heading serif; a link when ``href`` is given."""
     logo_px, text_px, gap = (64, 56, 16) if size == "large" else (30, 22, 8)
     brand = (
         f'<div class="tb-brand tb-brand-{size}" style="display:flex;align-items:center;gap:{gap}px;'
         f'justify-content:{"center" if size == "large" else "flex-start"}">'
         f"{svg_img(logo_svg(logo_px, p), f'{logo_px}px', APP_NAME + ' logo')}"
-        f'<span style="font-family:Lora,Georgia,serif;font-weight:600;font-size:{text_px}px;'
+        f'<span style="font-family:IBM Plex Sans,system-ui,sans-serif;font-weight:600;font-size:{text_px}px;'
         f'letter-spacing:-0.01em;line-height:1">{APP_NAME}</span></div>'
     )
     if href is None:
@@ -86,7 +86,7 @@ def needle_degrees(net: float) -> float:
     return max(-1.0, min(1.0, net)) * 90.0
 
 
-def gauge_svg(net: float, label: str, p: Palette = LIGHT) -> str:
+def gauge_svg(net: float, label: str, p: Palette = OLED) -> str:
     """Half-dial SVG: bearish / mixed / bullish bands and a needle that sweeps into place."""
     gap = 0.012  # thin separator between bands
     bands = (
@@ -126,13 +126,13 @@ def gauge_svg(net: float, label: str, p: Palette = LIGHT) -> str:
     )
 
 
-def gauge_html(net: float, label: str, p: Palette = LIGHT) -> str:
+def gauge_html(net: float, label: str, p: Palette = OLED) -> str:
     """The gauge image with the net reading and its label underneath."""
     image = svg_img(gauge_svg(net, label, p), "100%", f"Signal balance gauge: {label}, net {net:+.2f}")
     return (
         '<div class="tb-gauge" style="max-width:420px;margin:0 auto">'
         f"{image}"
         '<div style="text-align:center;margin-top:-4px">'
-        f'<div style="font-family:Lora,Georgia,serif;font-size:28px;font-weight:600;line-height:1.2">{net:+.2f}</div>'
+        f'<div style="font-family:IBM Plex Sans,system-ui,sans-serif;font-size:28px;font-weight:600;line-height:1.2">{net:+.2f}</div>'
         f'<div style="font-size:15px;opacity:0.85">{escape(label)}</div></div></div>'
     )

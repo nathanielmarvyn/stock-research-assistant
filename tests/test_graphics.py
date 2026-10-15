@@ -8,7 +8,7 @@ from brief.ui import charts, graphics
 
 
 def test_logo_uses_theme_colors_and_current_color() -> None:
-    for p in (charts.LIGHT, charts.DARK):
+    for p in (charts.OLED,):
         svg = graphics.logo_svg(40, p)
         assert 'width="40"' in svg and p.price in svg and p.sma50 in svg
         assert p.text in svg  # first candle uses the mode's ink color (images can't inherit it)
@@ -32,13 +32,13 @@ def test_dial_endpoints() -> None:
 
 
 def test_gauge_markup() -> None:
-    svg = graphics.gauge_svg(0.38, "Mostly bullish signals", charts.LIGHT)
+    svg = graphics.gauge_svg(0.38, "Mostly bullish signals", charts.OLED)
     assert svg.startswith("<svg") and 'xmlns="http://www.w3.org/2000/svg"' in svg  # standalone image
     assert "rotate(34.2deg)" in svg  # needle's final position
     assert "+0.38" in svg and "Mostly bullish signals" in svg
     assert len(re.findall(r"<path ", svg)) == 3  # bearish, mixed, bullish bands
     assert "prefers-reduced-motion" in svg  # animation respects reduced-motion settings
-    assert charts.LIGHT.bull_strong in svg  # center dot colored bullish
+    assert charts.OLED.bull_strong in svg  # center dot colored bullish
 
 
 def test_gauge_escapes_label() -> None:
@@ -47,7 +47,7 @@ def test_gauge_escapes_label() -> None:
 
 
 def test_gauge_html_embeds_image_and_readout() -> None:
-    html = graphics.gauge_html(-0.5, "Mostly bearish signals", charts.DARK)
+    html = graphics.gauge_html(-0.5, "Mostly bearish signals", charts.OLED)
     assert html.count('<img src="data:image/svg+xml;base64,') == 1
     assert "-0.50" in html and "Mostly bearish signals" in html
 

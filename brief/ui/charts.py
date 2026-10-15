@@ -1,11 +1,11 @@
 """Plotly figures for the brief. Pure functions: data in, Figure out.
 
-Colors come from a ``Palette`` with light and dark variants matching the
-"Classic research" theme. The three line colors (burgundy, ochre, navy) were
-checked with a palette validator for colorblind separation, a normal-vision
-floor, and 3:1 contrast against each mode's background. Bull/bear encodings use
-a navy <-> burgundy diverging pair with a warm gray midpoint, never red/green,
-and are always paired with labels or icons. Price and volume use separate
+Colors come from the ``OLED`` palette matching the dark fintech theme. The three
+line colors (amber, violet, cyan) and the bull/bear pair (blue, rose) passed a
+palette validator for colorblind separation, a normal-vision floor, lightness band,
+and 3:1 contrast against the navy background; brighter tints of the same hues failed
+the lightness band (too glaring on dark). Bull/bear never uses red/green and is always
+paired with labels or icons. Price and volume use separate
 panels on a shared date axis rather than a dual y-axis.
 """
 
@@ -42,17 +42,12 @@ class Palette:
     gap: str  # thin separator between adjacent fills (matches the page background)
 
 
-LIGHT = Palette(
-    price="#A8323F", sma50="#B07A1E", sma200="#2E6BB0", neutral="#9C968B", grid="rgba(43,42,40,0.10)",
-    text="#2B2A28", bull_strong="#24548C", bull="#7FA5D4", hold="#BDB8AE", bear="#D99AA2",
-    bear_strong="#A8323F", bull_tint="rgba(46,107,176,0.10)", bear_tint="rgba(168,50,63,0.10)", gap="#FBF8F2",
+OLED = Palette(
+    price="#D97706", sma50="#8B5CF6", sma200="#0891B2", neutral="#64748B", grid="rgba(248,250,252,0.08)",
+    text="#F8FAFC", bull_strong="#3B82F6", bull="#27508F", hold="#475569", bear="#7A2540",
+    bear_strong="#E11D48", bull_tint="rgba(59,130,246,0.16)", bear_tint="rgba(225,29,72,0.16)", gap="#0F172A",
 )
-DARK = Palette(
-    price="#DB6A8A", sma50="#B88A1E", sma200="#4F8FD6", neutral="#7A746A", grid="rgba(237,230,214,0.10)",
-    text="#EDE6D6", bull_strong="#5C9BE0", bull="#35618F", hold="#5C574F", bear="#8C4656",
-    bear_strong="#DB6A8A", bull_tint="rgba(79,143,214,0.14)", bear_tint="rgba(219,106,138,0.14)", gap="#1C1A17",
-)
-FONT_FAMILY = "Inter, system-ui, sans-serif"
+FONT_FAMILY = "IBM Plex Sans, system-ui, sans-serif"
 
 
 def _base_layout(fig: go.Figure, height: int, p: Palette) -> go.Figure:
@@ -71,7 +66,7 @@ def _base_layout(fig: go.Figure, height: int, p: Palette) -> go.Figure:
     return fig
 
 
-def price_chart(chart: pd.DataFrame, symbol: str, p: Palette = LIGHT) -> go.Figure:
+def price_chart(chart: pd.DataFrame, symbol: str, p: Palette = OLED) -> go.Figure:
     """Close with 50/200-day SMAs above a volume panel, with range buttons."""
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.75, 0.25], vertical_spacing=0.04)
     fig.add_trace(
@@ -110,7 +105,7 @@ def price_chart(chart: pd.DataFrame, symbol: str, p: Palette = LIGHT) -> go.Figu
     return fig
 
 
-def drawdown_chart(underwater: pd.DataFrame, p: Palette = LIGHT) -> go.Figure:
+def drawdown_chart(underwater: pd.DataFrame, p: Palette = OLED) -> go.Figure:
     """Percent below the running high over time; the ticker is filled, the benchmark a neutral line."""
     fig = go.Figure()
     for i, column in enumerate(underwater.columns):
@@ -131,7 +126,7 @@ def drawdown_chart(underwater: pd.DataFrame, p: Palette = LIGHT) -> go.Figure:
     return fig
 
 
-def earnings_chart(history: EarningsHistory, p: Palette = LIGHT) -> go.Figure:
+def earnings_chart(history: EarningsHistory, p: Palette = OLED) -> go.Figure:
     """Estimate (hollow) vs. actual (filled) EPS per quarter, oldest to newest."""
     quarters = list(reversed(history.quarters))
     labels = [f"{q.period_end:%b %Y}" for q in quarters]
@@ -159,7 +154,7 @@ def earnings_chart(history: EarningsHistory, p: Palette = LIGHT) -> go.Figure:
     return fig
 
 
-def ratings_chart(consensus: AnalystConsensus, p: Palette = LIGHT) -> go.Figure:
+def ratings_chart(consensus: AnalystConsensus, p: Palette = OLED) -> go.Figure:
     """One horizontal stacked bar of analyst ratings, Strong Buy to Strong Sell."""
     counts = {
         "Strong Buy": (consensus.strong_buy, p.bull_strong),
@@ -190,7 +185,7 @@ def ratings_chart(consensus: AnalystConsensus, p: Palette = LIGHT) -> go.Figure:
     return fig
 
 
-def holdings_chart(holdings: list[Holding], p: Palette = LIGHT) -> go.Figure:
+def holdings_chart(holdings: list[Holding], p: Palette = OLED) -> go.Figure:
     """Horizontal bars of top ETF holdings by weight, largest at the top."""
     ordered = list(reversed(holdings))
     fig = go.Figure(
@@ -215,7 +210,7 @@ def holdings_chart(holdings: list[Holding], p: Palette = LIGHT) -> go.Figure:
 # ---------------------------------------------------------------- signal balance
 
 
-def signal_bars(signals: list[Signal], weights: dict[str, float], p: Palette = LIGHT) -> go.Figure:
+def signal_bars(signals: list[Signal], weights: dict[str, float], p: Palette = OLED) -> go.Figure:
     """Each factor's score as a diverging bar; factors weighted at 0 are faded."""
     ordered = list(reversed(signals))  # plotly draws bottom-up; keep display order top-down
     colors = [p.bull_strong if s.score > 0 else p.bear_strong if s.score < 0 else p.neutral for s in ordered]
