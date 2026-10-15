@@ -5,6 +5,7 @@ yfinance==1.7.0
 pandas==3.0.6
 plotly==7.1.0
 anthropic==1.12.0
+perplexityai==0.43.8
 pydantic==2.13.5
 requests==2.34.2
 python-dotenv==1.2.4

@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 import anthropic
+import httpx
 import httpx2
 import pytest
 
@@ -186,3 +187,77 @@ def test_etf_news_matches_index_name() -> None:
     result = news.get_news("SPY", "State Street SPDR S&P 500 ETF Trust", is_etf=True,
                            finnhub=FakeFinnhub(articles), llm=fake_llm(error=news.DataUnavailableError("off")))
     assert [h.headline for h in result.data.headlines] == ["S&P 500 slips from record"]
+
+
+# ---------------------------------------------------------------- web search top-up
+
+
+@pytest.fixture(autouse=True)
+def no_live_web_search(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never call the real Perplexity API, even if a key is configured."""
+    def unconfigured():
+        raise news.DataUnavailableError("Perplexity API key is not configured.")
+    monkeypatch.setattr(news.web_search, "perplexity_client", unconfigured)
+
+
+def web_result(title: str, url: str, day: str = "2026-10-06") -> SimpleNamespace:
+    return SimpleNamespace(title=title, url=url, snippet="Web snippet.", date=day, last_updated=None)
+
+
+class FakeWeb:
+    def __init__(self, results=(), error: Exception | None = None) -> None:
+        self.calls: list[dict] = []
+        outer = self
+
+        class _Search:
+            def create(self, **kwargs):
+                outer.calls.append(kwargs)
+                if error:
+                    raise error
+                return SimpleNamespace(id="r", results=list(results))
+
+        self.search = _Search()
+
+
+def test_thin_news_is_topped_up_from_web_search() -> None:
+    finnhub = [article("Apple faces EU probe", 1791100000)]
+    web = FakeWeb([
+        web_result("Apple ships new Macs", "https://www.theverge.com/apple-macs"),
+        web_result("Apple faces EU probe (dup URL)", "https://x/1791100000/"),  # same URL as Finnhub's
+        web_result("Fed holds rates", "https://reuters.com/fed"),  # irrelevant: filtered
+    ])
+    result = news.get_news("AAPL", "Apple Inc.", finnhub=FakeFinnhub(finnhub),
+                           llm=fake_llm(error=news.DataUnavailableError("off")), today=date(2026, 10, 8), web=web)
+    assert [h.headline for h in result.data.headlines] == ["Apple ships new Macs", "Apple faces EU probe"]
+    assert result.data.headlines[0].source == "theverge.com"
+    assert result.source == news.WEB_SOURCE
+    assert web.calls[0]["query"] == "Apple Inc. (AAPL) stock news"
+
+
+def test_web_search_rescues_empty_finnhub_feed() -> None:
+    web = FakeWeb([web_result("SPY slips from record", "https://cnbc.com/spy")])
+    result = news.get_news("SPY", "SPDR S&P 500 ETF Trust", is_etf=True, finnhub=FakeFinnhub([]),
+                           llm=fake_llm(error=news.DataUnavailableError("off")), today=date(2026, 10, 8), web=web)
+    assert result.ok and [h.headline for h in result.data.headlines] == ["SPY slips from record"]
+
+
+def test_web_search_skipped_when_coverage_is_enough() -> None:
+    web = FakeWeb([web_result("Apple extra", "https://a.com/x")])
+    result = news.get_news("AAPL", "Apple Inc.", finnhub=FakeFinnhub(load_json("finnhub_news_aapl.json")),
+                           llm=fake_llm(error=news.DataUnavailableError("off")), today=date(2026, 10, 8), web=web)
+    assert web.calls == [] and result.source == news.SOURCE
+
+
+def test_web_search_failure_keeps_finnhub_news() -> None:
+    response = httpx.Response(429, request=httpx.Request("POST", "https://api.perplexity.ai/search"))
+    web = FakeWeb(error=news.perplexity.RateLimitError("slow down", response=response, body=None))
+    finnhub = [article("Apple faces EU probe", 1791100000)]
+    result = news.get_news("AAPL", "Apple Inc.", finnhub=FakeFinnhub(finnhub),
+                           llm=fake_llm(error=news.DataUnavailableError("off")), today=date(2026, 10, 8), web=web)
+    assert result.ok and [h.headline for h in result.data.headlines] == ["Apple faces EU probe"]
+    assert result.source == news.SOURCE
+
+
+def test_no_key_means_finnhub_only() -> None:
+    result = news.get_news("ZZZ", "Zzz Inc.", finnhub=FakeFinnhub([]), llm=fake_llm())
+    assert not result.ok and "No headlines naming ZZZ" in result.error

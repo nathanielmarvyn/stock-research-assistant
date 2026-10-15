@@ -63,3 +63,15 @@ def test_live_finnhub_spy() -> None:
     from brief.finnhub_client import get_next_earnings
 
     assert not get_next_earnings("SPY").ok  # ETFs have no earnings date
+
+
+def test_live_perplexity_search() -> None:
+    from datetime import date, timedelta
+
+    from brief.config import get_settings
+    from brief.web_search import search_news
+
+    if not get_settings().perplexity_api_key:
+        pytest.skip("PERPLEXITY_API_KEY not set (web search is optional)")
+    articles = search_news(["Apple Inc. (AAPL) stock news"], date.today() - timedelta(days=14), 5)
+    assert all({"headline", "url", "source", "datetime", "summary"} <= a.keys() for a in articles)

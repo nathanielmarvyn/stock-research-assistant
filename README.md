@@ -32,7 +32,7 @@ _Snapshot for an ETF (SPY): AUM and expense ratio replace company metrics._
 | **Wall Street view** (stocks) | Analyst consensus with month-over-month drift, rating distribution, average price target and implied move | Finnhub, Yahoo Finance |
 | **Earnings track record** (stocks) | Last 4 quarters of EPS vs. consensus: beat, miss, or in line (±1%), surprise %, and an estimate-vs-actual chart | Finnhub |
 | **Ownership & insider activity** (stocks) | 6 months of open-market insider trades (who, role, shares, value, date, % of holdings), net buying vs. selling, flags for notable activity, % held by insiders and institutions, top 10 institutional holders with quarterly change | Finnhub (SEC Form 4), Yahoo Finance |
-| **Recent news** | Up to 10 headlines from the past two weeks with source, date, link, one-line summary, and sentiment, plus an overall score | Finnhub, Claude Haiku 5.5 |
+| **Recent news** | Up to 10 headlines from the past two weeks with source, date, link, one-line summary, and sentiment, plus an overall score. When Finnhub finds fewer than 5, web search results top it up | Finnhub, Perplexity Search (optional), Claude Haiku 5.5 |
 | **AI analysis** | Summary, bull case, bear case, key risks, what to watch, with a grounding check and disclaimer | Claude Sonnet 5.5 |
 
 Every section shows when its data is from ("Data as of Oct 7, 2026, 4:00 PM ET") and where it came from.
@@ -150,6 +150,7 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 **Reliability and cost**
 - **Caching:** 15-minute cache per section, and failures are never cached, so a rate limit retries on the next lookup.
 - **Finnhub client:** retries with backoff on HTTP 429, and gives clear messages for bad keys, paid-only endpoints, and timeouts.
+- **Web search fills thin news coverage:** when Finnhub has fewer than 5 relevant headlines (common for ETFs and smaller companies), the Perplexity Search API returns raw ranked web results for the past two weeks. They pass the same relevance filter and sentiment scoring, deduplicated by URL against Finnhub's. It's optional, runs only when needed ($0.005 per search), and any failure falls back to Finnhub-only news. Search (raw results) was chosen over Perplexity's answer API because Claude already writes the grounded analysis.
 - **Graceful degradation:** if Claude is down, the news section still shows headlines with source summaries. If Finnhub is down, the price target still shows.
 - **Search that ranks sensibly without a search engine:** Finnhub's free symbol list is filtered to major exchanges and cleaned ("BERKSHIRE HATHAWAY INC-CL B" becomes "Berkshire Hathaway Inc Class B"), well-known companies are listed first, and the search box filters by substring while keeping that order. Free text still works: "jp morgan" + Enter resolves to JPM, and unknown input is tried as a ticker.
 - **Custom graphics survive Streamlit's sanitizer:** the logo and gauge are SVGs delivered as data-URI images (inline SVG is stripped), with the needle's sweep animation defined inside the SVG and disabled for viewers who prefer reduced motion.
@@ -160,7 +161,7 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 
 ## Setup
 
-Requires **Python 3.11+**, plus free API keys from [Finnhub](https://finnhub.io/) and [Anthropic](https://console.anthropic.com/).
+Requires **Python 3.11+**, plus free API keys from [Finnhub](https://finnhub.io/) and [Anthropic](https://console.anthropic.com/). A [Perplexity](https://console.perplexity.ai) key is optional (web search for thin news coverage).
 
 ```bash
 git clone https://github.com/nathanielmarvyn/stock-research-assistant.git
@@ -184,6 +185,7 @@ cp .env.example .env      # Windows: copy .env.example .env
 ```
 FINNHUB_API_KEY=your_finnhub_key
 ANTHROPIC_API_KEY=your_anthropic_key   # starts with sk-ant-api03-
+PERPLEXITY_API_KEY=your_perplexity_key # optional
 ```
 
 `.env` is in `.gitignore` and never committed. Keep the placeholders in `.env.example`.
@@ -206,7 +208,7 @@ python scripts/preview.py AAPL
 
 ```bash
 pytest            # offline unit tests (fast, no network, no API keys)
-pytest -m live    # live smoke tests against Yahoo Finance and Finnhub with AAPL and SPY
+pytest -m live    # live smoke tests against Yahoo Finance, Finnhub, and Perplexity Search (skipped without a key)
 ```
 
 GitHub Actions runs the offline suite on Python 3.11, 3.12, and 3.13 for every push and pull request (no API keys needed).
@@ -225,6 +227,7 @@ Non-secret settings live in `brief/config.py`: Claude models, token limits and e
    ```toml
    FINNHUB_API_KEY = "your_finnhub_key"
    ANTHROPIC_API_KEY = "your_anthropic_key"
+   PERPLEXITY_API_KEY = "your_perplexity_key"  # optional
    ```
 4. Deploy. `brief/config.py` reads environment variables first, then Streamlit secrets, so the code is the same locally and in the cloud.
 

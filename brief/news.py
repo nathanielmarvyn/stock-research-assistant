@@ -3,7 +3,9 @@
 Pipeline:
 1. Fetch the last two weeks of company news (Finnhub).
 2. Keep up to 10 headlines that name the company (or ticker), deduped, newest first.
-   Unrelated market news is never used as filler; a note flags thin coverage.
+   Unrelated market news is never used as filler. If fewer than 5 remain and a
+   Perplexity key is configured, recent web search results top them up (same
+   relevance filter, deduped by URL); a note still flags thin coverage.
 3. One batched Claude (Haiku) call returns a one-line summary and sentiment per
    headline as schema-validated JSON.
 4. The overall score is computed in code from those labels, not asked of the model.
@@ -21,15 +23,20 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Literal, Protocol
 
 import anthropic
+import perplexity
 from pydantic import BaseModel, Field
+
+from brief import web_search
 
 from brief.config import get_settings
 from brief.finnhub_client import FinnhubClient
 from brief.models import DataUnavailableError, SectionResult, safe_section
+from brief.web_search import SearchClient
 
 logger = logging.getLogger(__name__)
 
 SOURCE = "Finnhub (news), Claude (summaries & sentiment)"
+WEB_SOURCE = "Finnhub and Perplexity Search (news), Claude (summaries & sentiment)"
 MIN_HEADLINES = 5
 SENTIMENT_VALUES = {"positive": 1, "neutral": 0, "negative": -1}
 _NAME_NOISE = re.compile(
@@ -264,6 +271,34 @@ def describe_api_error(exc: Exception) -> str:
     return str(exc)
 
 
+# ---------------------------------------------------------------- web top-up
+
+
+def web_articles(
+    symbol: str,
+    company_name: str,
+    keywords: tuple[str, ...],
+    is_etf: bool,
+    since: date,
+    client: SearchClient | None = None,
+) -> list[dict[str, Any]]:
+    """Recent web results as article dicts, or [] if search isn't configured or fails."""
+    queries = web_search.news_queries(symbol, company_name, keywords, is_etf)
+    try:
+        return web_search.search_news(queries, since, get_settings().web_search_max_results, client)
+    except DataUnavailableError:  # no Perplexity key: news stays Finnhub-only
+        return []
+    except perplexity.APIError as exc:
+        logger.warning("Web news search failed for %s: %s", symbol, web_search.describe_search_error(exc))
+        return []
+
+
+def merge_articles(primary: list[dict[str, Any]], extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """``primary`` plus the ``extra`` articles whose URL it doesn't already have."""
+    seen = {web_search.url_key(a["url"]) for a in primary if a.get("url")}
+    return primary + [a for a in extra if web_search.url_key(a["url"]) not in seen]
+
+
 # ---------------------------------------------------------------- section
 
 
@@ -275,6 +310,7 @@ def get_news(
     finnhub: FinnhubClient | None = None,
     llm: MessagesClient | None = None,
     today: date | None = None,
+    web: SearchClient | None = None,
 ) -> SectionResult[NewsBrief]:
     """News section. Sentiment failures degrade to unscored headlines.
 
@@ -283,15 +319,22 @@ def get_news(
     """
     settings = get_settings()
     today = today or date.today()
-    articles = (finnhub or FinnhubClient()).company_news(
-        symbol, today - timedelta(days=settings.news_lookback_days), today
-    )
+    since = today - timedelta(days=settings.news_lookback_days)
+    articles = (finnhub or FinnhubClient()).company_news(symbol, since, today)
     if is_etf:
         keywords = etf_keywords(symbol, company_name)
     else:
         keyword = company_keyword(company_name)
         keywords = (keyword,) if keyword else ()
     headlines = select_headlines(articles, symbol, keywords, settings.max_headlines)
+    source = SOURCE
+    if len(headlines) < MIN_HEADLINES:
+        extra = web_articles(symbol, company_name, keywords, is_etf, since, web)
+        if extra:
+            headlines = select_headlines(merge_articles(articles, extra), symbol, keywords, settings.max_headlines)
+            web_urls = {a["url"] for a in extra}
+            if any(h.url in web_urls for h in headlines):
+                source = WEB_SOURCE
     named = " or ".join((symbol, *keywords))
     if not headlines:
         raise DataUnavailableError(f"No headlines naming {named} in the past {settings.news_lookback_days} days.")
@@ -318,4 +361,4 @@ def get_news(
         logger.warning("News sentiment failed for %s: %s", symbol, exc)
 
     score, label = overall_sentiment(headlines)
-    return SectionResult.success(NewsBrief(headlines, score, label, note, coverage), SOURCE)
+    return SectionResult.success(NewsBrief(headlines, score, label, note, coverage), source)

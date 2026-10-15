@@ -37,6 +37,8 @@ class Settings:
 
     finnhub_api_key: str | None
     anthropic_api_key: str | None
+    # Optional: web search tops up thin news coverage. Without it, news is Finnhub-only.
+    perplexity_api_key: str | None = None
 
     # Claude models: a cheap one for repetitive headline scoring,
     # a stronger one for the written analysis.
@@ -65,6 +67,8 @@ class Settings:
     benchmark_ticker: str = "SPY"
     news_lookback_days: int = 14
     max_headlines: int = 10
+    # Perplexity Search ($0.005/request) runs only when Finnhub finds fewer than 5 headlines.
+    web_search_max_results: int = 10
 
 
 @lru_cache(maxsize=1)
@@ -73,4 +77,5 @@ def get_settings() -> Settings:
     return Settings(
         finnhub_api_key=get_secret("FINNHUB_API_KEY"),
         anthropic_api_key=get_secret("ANTHROPIC_API_KEY"),
+        perplexity_api_key=get_secret("PERPLEXITY_API_KEY"),
     )
