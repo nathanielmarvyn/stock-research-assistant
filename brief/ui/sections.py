@@ -51,11 +51,8 @@ def bullets(points: list[str]) -> str:
 
 
 def palette() -> charts.Palette:
-    """Chart colors for the viewer's current light/dark theme."""
-    try:
-        return charts.DARK if st.context.theme.type == "dark" else charts.LIGHT
-    except Exception:  # outside a running app (tests, scripts)
-        return charts.LIGHT
+    """Chart colors. The theme is dark-only, so this is always the OLED palette."""
+    return charts.OLED
 
 
 def as_of_text(result: SectionResult, date_only: bool = False) -> str:

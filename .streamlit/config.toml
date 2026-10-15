@@ -1,57 +1,35 @@
-# "Classic research" theme: cream paper, charcoal ink, burgundy accents,
-# serif headings (Lora) over a clean sans body (Inter). Light and dark variants follow the
-# viewer's system setting. Chart colors live in brief/ui/charts.py and were
-# checked for colorblind separation and contrast against these surfaces.
+# Dark Mode (OLED) fintech theme, from the ui-ux-pro-max design system for a
+# financial research tool: deep navy, near-white text, amber primary, gold and violet
+# accents, IBM Plex Sans throughout. Dark only (the design system's anti-pattern list
+# rules out light backgrounds). Chart colors live in brief/ui/charts.py and were
+# checked for colorblind separation and contrast against this background.
 
 [theme]
-# Google Fonts as "<family>:<css url>". Two rules learned the hard way:
-# no fallback list (Streamlit appends it to the URL), and no family names ending
-# in a digit ("Source Sans 3" is emitted unquoted, which is invalid CSS).
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
-headingFont = "Lora:https://fonts.googleapis.com/css2?family=Lora:wght@500;600&display=swap"
+base = "dark"
+# Google Fonts as "<family>:<css url>". No fallback list (Streamlit appends it to the
+# URL) and no family names ending in a digit (they're emitted unquoted: invalid CSS).
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+headingFont = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
 headingFontWeights = 600
-baseRadius = "0.35rem"
-showSidebarBorder = true
+baseRadius = "0.6rem"
+showSidebarBorder = false
 linkUnderline = false
 
-[theme.light]
-primaryColor = "#7B1E2B"          # burgundy
-backgroundColor = "#FBF8F2"       # cream paper
-secondaryBackgroundColor = "#F2ECE0"
-textColor = "#2B2A28"             # charcoal
-linkColor = "#7B1E2B"
-borderColor = "#DDD5C5"
-dataframeBorderColor = "#E6DFD1"
-dataframeHeaderBackgroundColor = "#EFE8DA"
-greenColor = "#2E6B4F"
-redColor = "#A8323F"
-# Neutral badges: Streamlit's default gray measured 3.6:1 on cream (WCAG AA needs 4.5:1).
-grayTextColor = "#57534C"
-grayBackgroundColor = "#57534C1A"
-blueColor = "#2E6BB0"
-yellowColor = "#B07A1E"
-
-[theme.light.sidebar]
-backgroundColor = "#F2ECE0"
-
-[theme.dark]
-primaryColor = "#DB6A8A"          # rose (burgundy lifted for contrast on dark)
-backgroundColor = "#1C1A17"       # warm charcoal
-secondaryBackgroundColor = "#26231F"
-textColor = "#EDE6D6"
-linkColor = "#E58FA4"
-borderColor = "#3A352E"
-dataframeBorderColor = "#3A352E"
-dataframeHeaderBackgroundColor = "#2B2722"
-greenColor = "#5FAE86"
-redColor = "#DB6A8A"
-grayTextColor = "#C9C1B0"
-grayBackgroundColor = "#C9C1B01F"
-blueColor = "#4F8FD6"
-yellowColor = "#B88A1E"
-
-[theme.dark.sidebar]
-backgroundColor = "#221F1B"
+primaryColor = "#F59E0B"            # amber
+backgroundColor = "#0F172A"         # deep navy
+secondaryBackgroundColor = "#1E293B"
+textColor = "#F8FAFC"
+linkColor = "#FBBF24"               # gold
+borderColor = "#334155"
+dataframeBorderColor = "#334155"
+dataframeHeaderBackgroundColor = "#1E293B"
+greenColor = "#34D399"
+redColor = "#FB7185"
+blueColor = "#60A5FA"
+yellowColor = "#FBBF24"
+violetColor = "#A78BFA"
+grayTextColor = "#CBD5E1"
+grayBackgroundColor = "#CBD5E11F"
 
 [server]
 headless = true

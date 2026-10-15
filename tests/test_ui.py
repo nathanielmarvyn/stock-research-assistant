@@ -177,11 +177,11 @@ def test_signal_charts_both_palettes() -> None:
 
     signals = [Signal("a", "Trend", "above", 1.0, "rule"), Signal("b", "Valuation", "rich", -1.0, "rule"),
                Signal("c", "RSI", "55", 0.0, "rule")]
-    for p in (charts.LIGHT, charts.DARK):
+    for p in (charts.OLED,):
         bars = charts.signal_bars(signals, {"b": 0.0}, p)
         assert list(bars.data[0].y) == ["RSI", "Valuation", "Trend"]  # bottom-up order keeps display top-down
         assert list(bars.data[0].marker.opacity) == [1.0, 0.25, 1.0]  # zero-weighted factor is faded
 
 
-def test_palette_falls_back_to_light_outside_app() -> None:
-    assert ui.palette() is charts.LIGHT
+def test_palette_is_oled() -> None:
+    assert ui.palette() is charts.OLED

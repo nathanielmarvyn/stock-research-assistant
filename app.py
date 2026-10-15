@@ -57,10 +57,27 @@ STYLES = """
 .tb-home-link:hover { opacity: .75; }
 .tb-home-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .tb-summary { font-size: 1.1rem; line-height: 1.65; margin: .25rem 0 .5rem; }
-.tb-tagline { text-align: center; opacity: .8; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
-.tb-footnote { text-align: center; opacity: .65; font-size: .8rem; margin-top: 2.5rem; }
-/* Contrast (WCAG AA 4.5:1): Streamlit draws captions and table headers at 60% ink, which
-   measured 3.9:1 on cream. 75-80% clears AA in both light and dark mode. */
+.tb-tagline { text-align: center; opacity: .82; font-size: 1.05rem; margin: .25rem 0 1.25rem; }
+/* Dark Mode (OLED) effects: minimal glow, visible focus, tabular figures for numbers. */
+.tb-headline { text-align: center; font-size: clamp(1.75rem, 3.6vw, 2.4rem); font-weight: 600;
+  line-height: 1.15; letter-spacing: -0.02em; margin: 1.1rem 0 .4rem; text-shadow: 0 0 28px rgba(245,158,11,.22); }
+.tb-headline em { font-style: normal; color: #FBBF24; white-space: nowrap; }
+.st-key-hero_search [role="group"] { transition: box-shadow .2s ease, border-color .2s ease; }
+.st-key-hero_search [role="group"]:focus-within { box-shadow: 0 0 0 2px #F59E0B, 0 0 22px rgba(245,158,11,.28); }
+:focus-visible { outline: 2px solid #FBBF24 !important; outline-offset: 2px; }
+[data-testid="stMetricValue"], [data-testid="stTable"] td { font-variant-numeric: tabular-nums; }
+/* Feature cards: equal heights, and a soft amber glow on hover (they're informational, so no pointer). */
+.st-key-features [data-testid="stLayoutWrapper"],
+.st-key-features [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] { height: 100%; }
+.st-key-features [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"] {
+  transition: border-color .2s ease, box-shadow .2s ease; }
+.st-key-features [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]:hover {
+  border-color: rgba(245,158,11,.6); box-shadow: 0 0 18px rgba(245,158,11,.12); }
+.st-key-trust { text-align: center; opacity: .85; font-size: .9rem; }
+.st-key-trust [data-testid="stMarkdownContainer"] p { text-align: center; }
+.tb-footnote { text-align: center; opacity: .75; font-size: .8rem; margin-top: 1.5rem; }
+/* Contrast (WCAG AA 4.5:1): Streamlit draws captions and table headers at 60% ink; 75-80%
+   keeps them comfortably above AA on the navy background. */
 [data-testid="stCaptionContainer"] { opacity: .75 !important; }
 [data-testid="stTable"] th { color: inherit !important; opacity: .8; }
 /* Touch targets: 44px minimum for taps (tabs, chips, logo link). */
@@ -136,20 +153,49 @@ def suggestions(key: str, options: tuple[str, ...] = SUGGESTIONS, width: str = "
 # ---------------------------------------------------------------- views
 
 
+FEATURES = (
+    (":material/auto_awesome:", "AI summary",
+     "What the company does, how it's performing, and its biggest risk, with every figure checked."),
+    (":material/monitoring:", "Price and risk",
+     "Returns vs. the S&P 500, drawdowns, beta, Sharpe, and a bull/bear signal gauge."),
+    (":material/account_balance:", "Fundamentals and valuation",
+     "Four quarters of results, earnings beats and misses, and P/E vs. the market."),
+    (":material/groups:", "Insiders and ownership",
+     "Open-market insider trades from SEC Form 4 filings, flagged when notable."),
+)
+TRUST = (
+    ":material/database: Yahoo Finance · Finnhub · SEC Form 4 · "
+    ":material/verified_user: Read-only market data · "
+    ":material/no_accounts: No account needed · "
+    ":material/gavel: Not investment advice"
+)
+
+
 def home() -> None:
-    """Centered logo, wordmark, search box, and suggestions. No sidebar."""
+    """Hero (logo, headline, search as the call to action), features, and a trust strip."""
     with st.container(key="hero"):
-        st.html('<div style="height:14vh"></div>')
-        _, middle, _ = st.columns([1, 2.4, 1])
+        st.html('<div style="height:7vh"></div>')
+        _, middle, _ = st.columns([1, 3.6, 1])
         with middle:
             st.html(graphics.brand_html("large", ui.palette()))
+            st.html('<h1 class="tb-headline">Research any US stock <em>in one page</em>.</h1>')
             st.html(
-                '<p class="tb-tagline">One-page research briefs for US stocks and ETFs: fundamentals, '
-                "risk, insider activity, news, and a grounded AI analysis.</p>"
+                '<p class="tb-tagline">Fundamentals, risk, insider activity, news, and a grounded AI '
+                "analysis for any US-listed stock or ETF.</p>"
             )
             search_box("hero_search")
             suggestions("hero_picks", width="stretch")
-            st.html(f'<p class="tb-footnote">{DISCLAIMER}</p>')
+
+    st.html('<div style="height:2.5rem"></div>')
+    with st.container(key="features"):
+        for col, (icon, title, text) in zip(st.columns(len(FEATURES)), FEATURES):
+            with col.container(border=True):
+                st.markdown(f"{icon} **{title}**")
+                st.caption(text)
+
+    with st.container(key="trust"):
+        st.markdown(TRUST)
+        st.html(f'<p class="tb-footnote">{DISCLAIMER}</p>')
 
 
 def top_bar() -> None:

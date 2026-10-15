@@ -132,11 +132,12 @@ tests/                  Offline unit tests + opt-in live tests (pytest -m live)
 **A bull/bear scale without a black box**
 - **Rules, not a model.** Each factor (trend, relative return, growth, valuation vs. the S&P 500, analyst views, earnings record, insider activity, risk-adjusted return, downside capture, news) maps to −1..+1 by a written rule shown on hover. The same data always gives the same reading.
 - **Weights belong to the viewer.** Sliders change how much each factor counts, which makes the point an advisor would make to a client: the conclusion depends on what you prioritize.
-- **Labeled as evidence, not advice.** Zones read "mostly bullish / mixed / mostly bearish signals," and colors are navy vs. burgundy (not green vs. red) with labels, so they work for colorblind readers.
+- **Labeled as evidence, not advice.** Zones read "mostly bullish / mixed / mostly bearish signals," and colors are blue vs. rose (not green vs. red) with labels, so they work for colorblind readers.
 
 **Design**
-- **"Classic research" theme** (cream, charcoal, burgundy; Lora headings over Inter) defined entirely in `.streamlit/config.toml`, with light and dark variants that follow the viewer's system setting.
-- **Chart colors were validated, not eyeballed:** the three line colors passed a palette checker for colorblind separation, normal-vision distinctness, and 3:1 contrast against each mode's background, and charts switch palettes with the theme.
+- **Dark Mode (OLED) fintech theme** from a design-system generator: deep navy background, near-white text, amber primary with gold and violet accents, IBM Plex Sans throughout, minimal glow, and visible keyboard focus rings. Dark only, defined in `.streamlit/config.toml`.
+- **Homepage follows a conversion pattern:** hero (logo, headline, search as the call to action), four feature cards, and a trust strip naming the data sources and stating it's read-only and not advice.
+- **Chart colors were validated, not eyeballed:** the line colors (amber, violet, cyan) and the bull/bear pair (blue, rose) passed a palette checker for colorblind separation, normal-vision distinctness, lightness band, and 3:1 contrast against the navy background.
 
 **AI that stays grounded**
 - **The model only sees a "facts" document** built from the fetched sections, with numbers pre-formatted (`$109.42B`, `+16.4%`) so it can't confuse units. Missing sections are listed explicitly so it says "unavailable" instead of guessing.
@@ -249,7 +250,7 @@ Non-secret settings live in `brief/config.py`: Claude models, token limits and e
 - ✅ Risk profile (volatility, beta, drawdown, Sharpe, capture ratios)
 - ✅ Earnings track record
 - ✅ Ownership and insider activity with rule-based flags
-- ✅ "Classic research" theme with light and dark modes
+- ✅ Dark Mode (OLED) theme with validated chart colors
 - ✅ Interactive, rule-based signal-balance gauge
 - ✅ TickerBrief branding, search-first homepage, company-name search with live suggestions
 
